@@ -178,3 +178,14 @@ Một QR chung, không lưu số bàn hoặc yêu cầu khách cung cấp số �
 Nếu đã chạy payments.sql, chạy toàn bộ supabase/order-workflow.sql trước khi cập nhật frontend. Script gỡ ràng buộc thanh toán bắt buộc, giữ nguyên đơn/dữ liệu đã có. Không chạy lại payments.sql sau bước này.
 
 Sau cập nhật, chọn Nhận đơn, rồi Bắt đầu chuẩn bị. Lúc này In đơn xuất hiện cạnh Đã phục vụ. In đơn mở phiếu gọi món trong cửa sổ mới và hộp thoại in; chọn máy in đã cài trên máy quán, kiểm tra khổ giấy/xem trước. Khi xong nhấn Đã phục vụ để chuyển vào Lịch sử. Không bắt buộc in hoặc xác nhận thu tiền. Đơn đã phục vụ có thể in lại trong Lịch sử.
+
+## Tạo QR cho 50 bàn
+
+1. Chạy supabase/tables.sql trong SQL Editor, sau các script đơn/luồng phục vụ đã cài. Script giữ nguyên các đơn, QR menu chung và dữ liệu quán.
+2. Cập nhật frontend trên VPS, tải lại trang.
+3. Vào Mã QR → Tạo Bàn 01–50. Lần bấm sau không đổi mã đã tạo.
+4. Nhấn In toàn bộ nhãn QR hoặc In QR ở từng bàn. Kiểm tra số bàn lớn trên nhãn, cắt và dán đúng bàn. Có thể chọn lưu PDF trong hộp thoại in để in sau. Không in mã chung để gọi món tại bàn nữa.
+5. Quét QR Bàn 01 trên điện thoại: menu phải hiện Bạn đang gọi món tại Bàn 01. Gửi đơn thử, xác nhận trang chủ/Đơn gọi món và phiếu in đều ghi Bàn 01. Thử tiếp Bàn 02 và bộ lọc Bàn.
+6. Mở link QR chung cũ: vẫn xem món, nhưng nút gửi và chọn số lượng bị khóa. Đơn cũ không có số bàn hiển thị Đơn cũ · Chưa gắn bàn.
+
+QR có thể bị chia sẻ/chụp ảnh, số bàn không chứng minh người đặt có mặt tại quán. Chức năng mở/đóng bàn theo phiên chưa được triển khai. Nếu chạy lại orders.sql, cần chạy tables.sql cuối cùng trước khi kiểm tra.

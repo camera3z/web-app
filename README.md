@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 41 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 49 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -42,7 +42,7 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 - RLS chỉ cho chủ quán đọc dữ liệu của mình. Trình duyệt không có quyền ghi trực tiếp bảng; RPC kiểm tra tài khoản, bản quyền và dữ liệu trên mọi lần ghi.
 - Menu công khai đọc qua RPC theo slug ngẫu nhiên cố định, không lộ owner ID, email hoặc hash key. Menu ẩn khi không có bản quyền hiệu lực. Sau khi chỉnh sửa, khách tải lại menu để nhận dữ liệu mới; chưa có realtime.
 - Mỗi key gắn với tài khoản kích hoạt đầu tiên; nhiều key có thể gia hạn quyền cho cùng tài khoản. CLI quản trị tạo/gia hạn/thu hồi key qua service role, không có quyền quản trị trong frontend.
-- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key hoặc quản lý bàn.
+- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key.
 - Dữ liệu demo không tự nhập sang tài khoản online, tránh đưa nhầm dữ liệu trình duyệt vào quán.
 
 **Trạng thái:** đã triển khai mã và kiểm tra SQL + giao diện giả lập. Chưa kết nối Supabase thật, kiểm tra gửi email thực tế hay triển khai tên miền. Cần hoàn thành các bước trong hướng dẫn và kiểm tra trên hai tài khoản/thiết bị trước khi vận hành thương mại.
@@ -69,7 +69,7 @@ Giao diện phân biệt `over_email_send_rate_limit` với HTTP 429 chung; khô
 
 ## Gọi món bằng QR chung
 
-Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có bộ chọn SL: − 0 + ngay trên từng món, đồng bộ hai chiều với giỏ bên dưới. Tăng từ 0 để chọn món, giảm về 0 để bỏ món, tối đa 99/món; có ghi chú và nút Gửi đơn. Chọn số lượng chỉ cập nhật giỏ, không tự gửi đơn. Không cần tài khoản khách hoặc số bàn; một QR chung cho quán. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
+Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có bộ chọn SL: − 0 + ngay trên từng món, đồng bộ hai chiều với giỏ bên dưới. Tăng từ 0 để chọn món, giảm về 0 để bỏ món, tối đa 99/món; có ghi chú và nút Gửi đơn. Chọn số lượng chỉ cập nhật giỏ, không tự gửi đơn. Khách không cần tài khoản; QR từng bàn gắn số bàn vào đơn, QR chung chỉ xem menu sau khi chạy tables.sql. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
 
 Trang Đơn gọi món có hàng chờ cũ nhất trước và lịch sử mới nhất trước; tối đa 200 đơn mỗi danh sách. Tổng hợp món tính trong danh sách đang chờ (Mới/Đã nhận/Đang chuẩn bị), không phải thống kê toàn bộ lịch sử. Tự tải lại mỗi 10 giây khi trang đang mở và tab hiển thị; không có thông báo khi đóng trang hoặc push notification.
 
@@ -90,3 +90,11 @@ Luồng chính: Nhận đơn → Bắt đầu chuẩn bị → In đơn (tùy ch
 Cài đặt mới dùng orders.sql. Nếu trước đây đã chạy payments.sql, chạy supabase/order-workflow.sql để bỏ ràng buộc thanh toán bắt buộc và khôi phục luồng xử lý. Script không xóa đơn hay dữ liệu thanh toán đã ghi. payments.sql là tính năng cũ, không chạy lại trong luồng này.
 
 In qua hộp thoại trình duyệt, máy in được cài trên máy quản lý; bố cục phiếu rộng 72 mm phù hợp giấy 80 mm hoặc A4 tùy cài đặt. Không hỗ trợ in im lặng/điều khiển máy in trực tiếp. Kiểm thử xác minh cửa sổ và nội dung phiếu, chưa kiểm tra giấy in thực tế. Phần dữ liệu/thống kê mở rộng để sau.
+
+## QR theo bàn
+
+Chạy `supabase/tables.sql` cuối cùng, sau orders.sql và order-workflow.sql (nếu đã dùng). Mục Mã QR có Tạo Bàn 01–50, in nhãn một bàn hoặc toàn bộ. Tạo lại giữ nguyên token và không tạo trùng. Tên quán + số bàn lớn nằm trên mỗi nhãn. Mỗi link chứa menu slug và token UUID của bàn; khách thấy số bàn do server xác nhận. Đơn lưu table_id và snapshot table_number; số bàn có trên bảng quản lý, bộ lọc, nội dung tìm kiếm và phiếu in.
+
+QR chung hiện tại chỉ xem menu, không được tạo đơn mới (server cũng chặn RPC cũ sáu tham số). Yêu cầu cũ đã gửi trước nâng cấp vẫn có thể gửi lại để lấy cùng biên nhận. Các đơn cũ giữ nguyên, không tự gán bàn. Chủ quán không thể liệt kê hoặc dùng bàn của quán khác. Bàn có token công khai cho người quét; đây là định tuyến đơn, không xác minh khách đang ở tại quán. Người có ảnh QR vẫn có thể đặt từ xa; chưa có cơ chế mở/đóng bàn theo phiên.
+
+Nếu chạy lại orders.sql cũ, chạy tables.sql lại cuối cùng để giữ quy tắc mã chung chỉ xem và bảo vệ hàm tạo đơn nội bộ. Cần thực hiện kiểm tra thực tế sau migration/deploy: một QR Bàn 01, một QR Bàn 02, QR chung, và số bàn trên phiếu. Kiểm thử tự động đã xác minh SQL, 50 nhãn và API giả lập; chưa kiểm tra máy in/điện thoại vật lý.

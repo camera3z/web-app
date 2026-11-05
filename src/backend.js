@@ -49,17 +49,20 @@ export function createBackend(client) {
       }));
       return client.storage.from('menu-images').getPublicUrl(path).data.publicUrl;
     },
-    async placeOrder(slug, items, note, requestToken, clientToken, total) {
-      return checked(await client.rpc('place_menu_order', {menu_slug:slug,order_items:items,order_note:note,request_token:requestToken,client_token:clientToken,expected_total:total}));
+    async placeOrder(slug, items, note, requestToken, clientToken, total, tableToken) {
+      return checked(await client.rpc('place_menu_order', {menu_slug:slug,order_items:items,order_note:note,request_token:requestToken,client_token:clientToken,expected_total:total,...(tableToken?{table_token:tableToken}:{})}));
     },
     async orders(restaurantId, history=false) {
-      let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at').eq('restaurant_id',restaurantId);
+      let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at,table_id,table_number').eq('restaurant_id',restaurantId);
       query=query.in('status',history?['served','rejected']:['new','accepted','preparing']);
       return checked(await query.order('created_at',{ascending:!history}).limit(200));
     },
     async setOrderStatus(id, expected, next) {
       return checked(await client.rpc('set_menu_order_status',{order_id:id,expected_status:expected,next_status:next}));
     },
+    async tableContext(slug, token) { return checked(await client.rpc('get_table_context',{menu_slug:slug,table_token:token})); },
+    async tables(restaurantId) { return checked(await client.from('restaurant_tables').select('id,table_number,qr_token,active').eq('restaurant_id',restaurantId).order('table_number')); },
+    async ensureTables(count=50) { checked(await client.rpc('ensure_restaurant_tables',{table_count:count})); },
     async publicMenu(slug) { return checked(await client.rpc('get_public_menu', { menu_slug: slug })); },
     async activate(key) { return checked(await client.rpc('activate_license', { license_key: key })); },
   };
