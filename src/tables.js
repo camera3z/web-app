@@ -12,15 +12,21 @@ export async function printTableLabels(tables,restaurant,slug,escape){
  }catch(error){popup.close();throw error}
 }
 export function mountTables({backend,restaurant,restaurantId,slug,escape,toast}){
- const root=document.querySelector('#table-manager');let stopped=false,rows=[],busy=false;
- const error=message=>{const el=root.querySelector('#table-error');if(el)el.textContent=message};
- function draw(){if(stopped||!root.isConnected)return;root.innerHTML=`<div class="table-manager-head"><div><h2>QR riêng từng bàn</h2><p>Mã chung chỉ xem menu. Tạo các bàn, in nhãn rồi dán đúng số bàn.</p></div><button class="button primary" id="make-tables">Tạo Bàn 01–50</button></div><p id="table-error" role="alert"></p>${rows.length?`<div class="table-bulk"><strong>${rows.length} bàn · Mã đã tạo được giữ cố định</strong><button class="button secondary" id="print-all-tables">In toàn bộ nhãn QR</button></div><div class="table-cards">${rows.map(t=>`<article><h3>Bàn ${String(t.table_number).padStart(2,'0')}</h3><small>${t.active?'Đang sử dụng':'Ngừng nhận đơn'}</small><div><button class="button secondary" data-table-copy="${t.id}">Sao chép link</button><button class="button primary" data-table-print="${t.id}">In QR</button></div></article>`).join('')}</div>`:'<p class="muted">Chưa có bàn. Nhấn Tạo Bàn 01–50 để tạo mã riêng cho từng bàn.</p>'}`;
- root.querySelector('#make-tables').onclick=async e=>{if(busy)return;busy=true;e.currentTarget.disabled=true;try{await withLoadTimeout(backend.ensureTables(50));rows=await withLoadTimeout(backend.tables(restaurantId));draw();toast('Đã có Bàn 01–50. Các mã cũ được giữ nguyên.')}catch(e){error(e.message)}finally{busy=false;const b=root.querySelector('#make-tables');if(b)b.disabled=false}};
- const print=async tables=>{try{await printTableLabels(tables,restaurant,slug,escape)}catch(e){error(e.message)}};
- root.querySelector('#print-all-tables')?.addEventListener('click',()=>print(rows.filter(t=>t.active)));
- root.querySelectorAll('[data-table-print]').forEach(b=>b.onclick=()=>print(rows.filter(t=>t.id===b.dataset.tablePrint)));
- root.querySelectorAll('[data-table-copy]').forEach(b=>b.onclick=async()=>{const t=rows.find(t=>t.id===b.dataset.tableCopy);try{await navigator.clipboard.writeText(tableMenuURL(slug,t.qr_token));toast('Đã sao chép link Bàn '+t.table_number)}catch{error('Không sao chép được. Cho phép truy cập clipboard của trình duyệt.')}});
- }
- root.textContent='Đang tải danh sách bàn…';withLoadTimeout(backend.tables(restaurantId)).then(data=>{rows=data;draw()}).catch(e=>{draw();error('Chưa tải được bàn: '+e.message)});
+ const root=document.querySelector('#table-manager');let stopped=false,selected=null,busy=false;
+ root.innerHTML=`<details id="optional-table-qr"><summary>Thêm QR theo bàn (tùy chọn)</summary><p class="muted">QR chung vẫn đặt món từ xa. Chỉ tạo QR bàn khi quán cần phân biệt vị trí phục vụ.</p><form id="single-table-form" class="single-table-form"><label class="field">Số bàn<input name="table_number" type="number" min="1" max="200" step="1" required placeholder="Ví dụ: 3"></label><button class="button primary">Mở / Tạo QR bàn</button></form><p id="table-error" role="alert"></p><div id="selected-table-qr"></div></details>`;
+ const form=root.querySelector('form'),message=root.querySelector('#table-error'),result=root.querySelector('#selected-table-qr');
+ form.onsubmit=async e=>{
+  e.preventDefault();if(busy)return;const number=Number(form.elements.table_number.value);if(!Number.isInteger(number)||number<1||number>200)return;
+  busy=true;form.querySelector('button').disabled=true;message.textContent='';
+  try{
+   await withLoadTimeout(backend.addTable(number));
+   const rows=await withLoadTimeout(backend.tables(restaurantId));if(stopped)return;
+   selected=rows.find(t=>t.table_number===number);if(!selected)throw new Error('Chưa tải được mã bàn. Hãy thử lại.');
+   result.innerHTML=`<article class="single-table-result"><h3>Bàn ${String(number).padStart(2,'0')}</h3><p class="muted">${selected.active?'Đang sử dụng':'Ngừng nhận đơn'} · Mã được giữ nguyên khi mở lại.</p><button class="button secondary" id="copy-single-table">Sao chép link</button> <button class="button primary" id="print-single-table">In QR bàn này</button></article>`;
+   result.querySelector('#copy-single-table').onclick=async()=>{try{await navigator.clipboard.writeText(tableMenuURL(slug,selected.qr_token));toast('Đã sao chép link Bàn '+number)}catch{message.textContent='Không sao chép được liên kết. Kiểm tra quyền clipboard.'}};
+   result.querySelector('#print-single-table').onclick=async()=>{try{await printTableLabels([selected],restaurant,slug,escape)}catch(error){message.textContent=error.message}};
+  }catch(error){if(!stopped)message.textContent=error.message}
+  finally{busy=false;form.querySelector('button').disabled=false}
+ };
  return ()=>{stopped=true};
 }

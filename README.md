@@ -69,7 +69,7 @@ Giao diện phân biệt `over_email_send_rate_limit` với HTTP 429 chung; khô
 
 ## Gọi món bằng QR chung
 
-Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có bộ chọn SL: − 0 + ngay trên từng món, đồng bộ hai chiều với giỏ bên dưới. Tăng từ 0 để chọn món, giảm về 0 để bỏ món, tối đa 99/món; có ghi chú và nút Gửi đơn. Chọn số lượng chỉ cập nhật giỏ, không tự gửi đơn. Khách không cần tài khoản; QR từng bàn gắn số bàn vào đơn, QR chung chỉ xem menu sau khi chạy tables.sql. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
+Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có bộ chọn SL: − 0 + ngay trên từng món, đồng bộ hai chiều với giỏ bên dưới. Tăng từ 0 để chọn món, giảm về 0 để bỏ món, tối đa 99/món; có ghi chú và nút Gửi đơn. Chọn số lượng chỉ cập nhật giỏ, không tự gửi đơn. Khách không cần tài khoản; QR từng bàn gắn số bàn vào đơn, QR chung đặt món từ xa không số bàn, QR bàn là tùy chọn. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
 
 Trang Đơn gọi món có hàng chờ cũ nhất trước và lịch sử mới nhất trước; tối đa 200 đơn mỗi danh sách. Tổng hợp món tính trong danh sách đang chờ (Mới/Đã nhận/Đang chuẩn bị), không phải thống kê toàn bộ lịch sử. Tự tải lại mỗi 10 giây khi trang đang mở và tab hiển thị; không có thông báo khi đóng trang hoặc push notification.
 
@@ -91,10 +91,10 @@ Cài đặt mới dùng orders.sql. Nếu trước đây đã chạy payments.sq
 
 In qua hộp thoại trình duyệt, máy in được cài trên máy quản lý; bố cục phiếu rộng 72 mm phù hợp giấy 80 mm hoặc A4 tùy cài đặt. Không hỗ trợ in im lặng/điều khiển máy in trực tiếp. Kiểm thử xác minh cửa sổ và nội dung phiếu, chưa kiểm tra giấy in thực tế. Phần dữ liệu/thống kê mở rộng để sau.
 
-## QR theo bàn
+## QR chung và QR bàn tùy chọn
 
-Chạy `supabase/tables.sql` cuối cùng, sau orders.sql và order-workflow.sql (nếu đã dùng). Mục Mã QR có Tạo Bàn 01–50, in nhãn một bàn hoặc toàn bộ. Tạo lại giữ nguyên token và không tạo trùng. Tên quán + số bàn lớn nằm trên mỗi nhãn. Mỗi link chứa menu slug và token UUID của bàn; khách thấy số bàn do server xác nhận. Đơn lưu table_id và snapshot table_number; số bàn có trên bảng quản lý, bộ lọc, nội dung tìm kiếm và phiếu in.
+QR chung là luồng chính: xem menu và gọi món từ xa, không có số bàn. Trang quản lý ghi Không số bàn · Từ xa, vẫn nhận/xử lý/in đơn bình thường. Khách không bắt buộc chọn hoặc quét QR bàn.
 
-QR chung hiện tại chỉ xem menu, không được tạo đơn mới (server cũng chặn RPC cũ sáu tham số). Yêu cầu cũ đã gửi trước nâng cấp vẫn có thể gửi lại để lấy cùng biên nhận. Các đơn cũ giữ nguyên, không tự gán bàn. Chủ quán không thể liệt kê hoặc dùng bàn của quán khác. Bàn có token công khai cho người quét; đây là định tuyến đơn, không xác minh khách đang ở tại quán. Người có ảnh QR vẫn có thể đặt từ xa; chưa có cơ chế mở/đóng bàn theo phiên.
+Nếu cần bàn, mở Mã QR → Thêm QR theo bàn (tùy chọn), nhập số bàn (ví dụ 3), nhấn Mở / Tạo QR bàn. Chỉ tạo đúng số bàn đó; không tạo 1–3 hay tự tạo 50 bàn. Khu vực này thu gọn mặc định, không hiển thị danh sách hàng loạt. Mở lại một số bàn giữ nguyên mã và cho sao chép link/in một nhãn có tên quán + số bàn lớn. Các bàn đã tạo trước đây được giữ nguyên.
 
-Nếu chạy lại orders.sql cũ, chạy tables.sql lại cuối cùng để giữ quy tắc mã chung chỉ xem và bảo vệ hàm tạo đơn nội bộ. Cần thực hiện kiểm tra thực tế sau migration/deploy: một QR Bàn 01, một QR Bàn 02, QR chung, và số bàn trên phiếu. Kiểm thử tự động đã xác minh SQL, 50 nhãn và API giả lập; chưa kiểm tra máy in/điện thoại vật lý.
+Cài mới chạy tables.sql cuối cùng. Bản đã chạy phiên bản tables.sql cũ cần chạy optional-tables.sql để mở lại gọi món từ QR chung và thêm RPC tạo một bàn. Không xóa dữ liệu. Các đơn có QR bàn nhận số bàn do server xác thực, có bộ lọc bàn và số bàn trên phiếu. Không thể dùng bàn của quán khác. QR có thể bị chụp/chia sẻ; số bàn chỉ định tuyến đơn, không chứng minh khách có mặt tại quán.
