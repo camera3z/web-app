@@ -24,13 +24,15 @@ try {
  const demo=await start(5186,false);const online=await start(5187,true);
  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  const context=await browser.newContext();const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
- await page.goto(demo);await page.locator('#add').click();await page.locator('[name=name]').fill('Món kiểm thử');await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.locator('.dish').filter({hasText:'Món kiểm thử'}).waitFor();await page.reload();await page.locator('#search').fill('Món kiểm thử');assert.equal(await page.locator('.dish').count(),1);await page.locator('[data-toggle]').uncheck();await page.locator('.sold-out').waitFor();
+ await page.goto(demo);await page.locator('#add').click();await page.locator('[name=name]').fill('Món kiểm thử');const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=20;c.height=20;c.getContext('2d').fillRect(0,0,20,20);return c.toDataURL('image/png').split(',')[1]});await page.locator('#dish-photo-file').setInputFiles({name:'mon-an.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.getByText(/Đã chọn mon-an.png/).waitFor();await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.locator('.dish').filter({hasText:'Món kiểm thử'}).waitFor();await page.reload();await page.locator('#search').fill('Món kiểm thử');assert.equal(await page.locator('.dish').count(),1);assert.match(await page.locator('.dish-photo img').getAttribute('src'),/^data:image\/webp/);await page.locator('[data-toggle]').uncheck();await page.locator('.sold-out').waitFor();
  await page.locator('[data-edit]').click();page.once('dialog',d=>d.accept());await page.locator('#delete-dish').click();await page.locator('.empty').waitFor();
  console.log('PASS demo: create, persistence, search, availability, delete');
  const mockRoute=async route=>{
   const path=new URL(route.request().url()).pathname;
   const json=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   if(offline)return route.abort();
+  if(path.startsWith('/storage/v1/object/menu-images/'))return json({Key:path});
+  if(path.startsWith('/storage/v1/object/public/menu-images/'))return route.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});
   if(path==='/auth/v1/user')return json(user);
   if(path==='/auth/v1/otp')return json({});
   if(path==='/auth/v1/logout')return json({});
@@ -51,7 +53,7 @@ try {
  const payload=Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,aud:'authenticated'})).toString('base64url');
  await page.evaluate(({user,token})=>localStorage.setItem('sb-qrmenu-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user})),{user,token:`e30.${payload}.test`});
  await page.reload();await page.locator('[data-nav=menu]').click();await page.getByRole('heading',{name:'Món online',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),1);
- await page.locator('[data-edit]').click();await page.locator('[name=price]').fill('57000');await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.dish-bottom strong')?.textContent==='57.000đ');assert.equal(cloud.dishes[0].price,57000);
+ await page.locator('[data-edit]').click();await page.locator('[name=price]').fill('57000');await page.locator('#dish-photo-file').setInputFiles({name:'online.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.getByText(/Đã chọn online.png/).waitFor();await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.dish-bottom strong')?.textContent==='57.000đ');assert.equal(cloud.dishes[0].price,57000);assert.match(cloud.dishes[0].image,/storage\/v1\/object\/public\/menu-images\/11111111-1111-4111-8111-111111111111\//);
  failSave=true;await page.locator('[data-toggle]').uncheck();await page.getByText('Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải lại trang',{exact:true}).waitFor();assert.equal(await page.locator('[data-toggle]').isChecked(),true);assert.equal(cloud.dishes[0].available,true);failSave=false;
  console.log('PASS online UI (mock API): signed-out login, server data, save, failed-write rollback');
  await page.locator('[data-nav=qr]').click();assert.equal(await page.locator('#qr-url').inputValue(),online+'/?menu=quan-test');await page.waitForFunction(()=>document.querySelector('#qr-canvas')?.width>0);

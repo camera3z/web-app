@@ -1,3 +1,4 @@
+import { validateImage } from './images.js';
 export function createBackend(client) {
   const checked = ({ data, error }) => { if (error) throw error; return data; };
   return {
@@ -25,6 +26,16 @@ export function createBackend(client) {
         restaurant_address: restaurant.address, menu_dishes: dishes,
         expected_version: current?.version ?? 0,
       }));
+    },
+    async uploadImage(blob) {
+      validateImage(blob);
+      const user = await this.user();
+      if (!user) throw new Error('Vui lòng đăng nhập trước khi tải ảnh.');
+      const path = `${user.id}/${crypto.randomUUID()}.webp`;
+      checked(await client.storage.from('menu-images').upload(path, blob, {
+        contentType: 'image/webp', cacheControl: '31536000', upsert: false,
+      }));
+      return client.storage.from('menu-images').getPublicUrl(path).data.publicUrl;
     },
     async publicMenu(slug) { return checked(await client.rpc('get_public_menu', { menu_slug: slug })); },
     async activate(key) { return checked(await client.rpc('activate_license', { license_key: key })); },

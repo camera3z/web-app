@@ -15,6 +15,8 @@ URL và public key dùng trong frontend. **Không dùng secret/service_role key 
 2. Sao chép toàn bộ `supabase/schema.sql`, nhấn Run bằng tài khoản quản trị project.
 3. Kiểm tra có bảng `licenses`, `restaurants` và ba hàm `activate_license`, `save_restaurant`, `get_public_menu`.
 
+Để bật chọn ảnh từ thiết bị, chạy thêm toàn bộ `supabase/storage.sql` trong query riêng. Script tạo bucket công khai `menu-images`, giới hạn ảnh 5 MB và phân quyền theo chủ quán/bản quyền.
+
 Script có thể chạy lại khi nâng cấp từ bản QRMenu trước. Không chỉnh quyền bảng thành public và không tắt RLS. Nếu gặp lỗi, lưu nội dung lỗi để xử lý trước khi dùng ứng dụng.
 
 ## 3. Cấu hình ứng dụng
@@ -92,7 +94,7 @@ Không khôi phục key bị mất từ hash; cấp key mới và thu hồi key 
 1. Đăng nhập email.
 2. Mở Tài khoản & bản quyền, nhập key và nhấn Kích hoạt bản quyền.
 3. Mở Thông tin quán, nhập tên, lời chào, địa chỉ rồi nhấn Lưu thông tin. Lần lưu này tạo quán với thực đơn trống và đường dẫn riêng.
-4. Mở Thực đơn để thêm món, ảnh HTTPS, giá và trạng thái phục vụ.
+4. Mở Thực đơn để thêm món, chọn ảnh từ thiết bị hoặc nhập URL HTTPS, giá và trạng thái phục vụ.
 5. Mở Mã QR để xem đường dẫn và tải PNG.
 
 Key gắn với tài khoản đầu tiên kích hoạt. Key hết hạn hoặc bị thu hồi không thể kích hoạt; cập nhật thực đơn cũng bị từ chối phía database. Khi không còn key hiệu lực, menu công khai ẩn nhưng dữ liệu vẫn được giữ để có thể gia hạn.

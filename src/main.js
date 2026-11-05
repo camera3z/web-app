@@ -3,6 +3,7 @@ const icons = { ScanLine, ChevronsUpDown, LayoutDashboard, Utensils, QrCode, Sto
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
+import { prepareImage, imageDataURL } from './images.js';
 import { createBackend, hasActiveLicense } from './backend.js';
 
 const images = {
@@ -108,7 +109,55 @@ if($('#license-form'))$('#license-form').onsubmit=async e=>{
 };
 }
 
-function openDish(id){if(!canWrite()){view='license';render();toast('Đăng nhập và kích hoạt bản quyền để chỉnh sửa');return}const d=dishes.find(d=>d.id===id);$('#modal-root').innerHTML=`<div class="modal-backdrop"><form class="modal" id="dish-form"><div class="modal-heading"><div><div class="eyebrow">MỘT HƯƠNG VỊ MỚI</div><h2>${d?'Chỉnh sửa món':'Thêm món vào thực đơn'}</h2></div><button type="button" id="close-modal" class="icon-button" aria-label="Đóng">${icon('x')}</button></div><label class="field">Tên món<input name="name" required maxlength="100" value="${escape(d?.name||'')}" placeholder="Ví dụ: Cà phê muối"></label><div class="form-row"><label class="field">Danh mục<select name="category">${categories.slice(1).map(c=>`<option ${d?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label class="field">Giá bán (VNĐ)<input name="price" type="number" min="0" max="100000000" step="1000" required value="${d?.price??35000}"></label></div><label class="field">Mô tả<textarea name="description" maxlength="300" rows="2">${escape(d?.description||'')}</textarea></label><label class="field">Đường dẫn ảnh (HTTPS hoặc /images/...)<input name="image" type="text" pattern="(https://.*|/images/.*)" value="${escape(d?.image||images.coffee)}" required></label><label class="checkbox-label"><input name="best" type="checkbox" ${d?.best?'checked':''}> Đánh dấu món bán chạy</label><div class="modal-actions">${d?'<button type="button" class="button danger" id="delete-dish">Xóa món</button>':''}<button type="button" class="button secondary" id="cancel-modal">Hủy</button><button class="button primary">${icon('check')}Lưu món</button></div></form></div>`;const close=()=>{$('#modal-root').innerHTML='';document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);$('#close-modal').onclick=close;$('#cancel-modal').onclick=close;$('.modal-backdrop').onclick=e=>{if(e.target===e.currentTarget)close()};if($('#delete-dish'))$('#delete-dish').onclick=async()=>{if(confirm('Xóa món này khỏi thực đơn?')&&await persist(restaurant,dishes.filter(x=>x.id!==id))){close();render();toast('Đã xóa món')}};$('#dish-form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const dish={id:id||crypto.randomUUID(),name:f.get('name').trim(),category:f.get('category'),price:Number(f.get('price')),description:f.get('description').trim(),image:f.get('image'),best:f.has('best'),available:d?.available??true};if(!dish.name)return;const next=d?dishes.map(x=>x.id===id?dish:x):[...dishes,dish];if(await persist(restaurant,next)){close();render();toast(d?'Đã cập nhật món':'Đã thêm món mới')}};createIcons({icons});$('[name=name]').focus()}
+function openDish(id) {
+  if(!canWrite()){view='license';render();toast('Đăng nhập và kích hoạt bản quyền để chỉnh sửa');return}
+  const d=dishes.find(d=>d.id===id);
+  let selectedImage=null, uploadedURL='', previewURL='', busy=false, processing=false, closed=false, selection=0, imageURLChanged=false;
+  $('#modal-root').innerHTML=`<div class="modal-backdrop"><form class="modal" id="dish-form"><div class="modal-heading"><div><div class="eyebrow">MỘT HƯƠNG VỊ MỚI</div><h2>${d?'Chỉnh sửa món':'Thêm món vào thực đơn'}</h2></div><button type="button" id="close-modal" class="icon-button" aria-label="Đóng">${icon('x')}</button></div><label class="field">Tên món<input name="name" required maxlength="100" value="${escape(d?.name||'')}" placeholder="Ví dụ: Cà phê muối"></label><div class="form-row"><label class="field">Danh mục<select name="category">${categories.slice(1).map(c=>`<option ${d?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label class="field">Giá bán (VNĐ)<input name="price" type="number" min="0" max="100000000" step="1000" required value="${d?.price??35000}"></label></div><label class="field">Mô tả<textarea name="description" maxlength="300" rows="2">${escape(d?.description||'')}</textarea></label><div class="field"><span>Ảnh món ăn</span><div class="image-picker"><img id="image-preview" src="${escape(d?.image||images.coffee)}" alt="Ảnh xem trước"><div><label class="button secondary" for="dish-photo-file">Chọn ảnh từ thiết bị</label><input id="dish-photo-file" type="file" accept="image/jpeg,image/png,image/webp"><p>JPG, PNG, WebP · Tối đa 5 MB</p><p id="image-status" role="status">${backend?'Ảnh được tải lên khi lưu món.':'Demo: ảnh được lưu trong trình duyệt.'}</p><button type="button" class="image-reset" id="reset-image" hidden>Bỏ ảnh vừa chọn</button></div></div></div><details class="image-url-details"><summary>Hoặc sử dụng đường dẫn ảnh</summary><label class="field">Đường dẫn ảnh (HTTPS hoặc /images/...)<input name="image" type="text" pattern="(https://.*|/images/.*)" value="${escape(d?.image?.startsWith('data:')?images.coffee:d?.image||images.coffee)}" required></label></details><label class="checkbox-label"><input name="best" type="checkbox" ${d?.best?'checked':''}> Đánh dấu món bán chạy</label><div class="modal-actions">${d?'<button type="button" class="button danger" id="delete-dish">Xóa món</button>':''}<button type="button" class="button secondary" id="cancel-modal">Hủy</button><button id="save-dish" class="button primary">${icon('check')}Lưu món</button></div></form></div>`;
+  const form=$('#dish-form'), fileInput=$('#dish-photo-file'), imageInput=form.elements.image;
+  const setBusy=value=>{busy=value;form.querySelectorAll('button,input,textarea,select').forEach(el=>el.disabled=value);$('#save-dish').textContent=value?'Đang lưu…':'Lưu món'};
+  const releasePreview=()=>{if(previewURL){URL.revokeObjectURL(previewURL);previewURL=''}};
+  const close=()=>{if(busy)return;closed=true;selection++;releasePreview();$('#modal-root').innerHTML='';document.removeEventListener('keydown',esc)};
+  const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
+  $('#close-modal').onclick=close;$('#cancel-modal').onclick=close;
+  $('.modal-backdrop').onclick=e=>{if(e.target===e.currentTarget)close()};
+  const resetImage=()=>{selection++;processing=false;selectedImage=null;uploadedURL='';releasePreview();fileInput.value='';$('#reset-image').hidden=true;$('#image-preview').src=imageInput.value;$('#image-status').textContent='Chưa chọn ảnh mới.'};
+  $('#reset-image').onclick=resetImage;
+  imageInput.oninput=()=>{imageURLChanged=true;resetImage()};
+  fileInput.onchange=async()=>{
+    const file=fileInput.files[0];if(!file)return;
+    const token=++selection;processing=true;$('#image-status').textContent='Đang xử lý ảnh…';
+    try{
+      const blob=await prepareImage(file);if(closed||token!==selection)return;
+      releasePreview();selectedImage=blob;uploadedURL='';previewURL=URL.createObjectURL(blob);
+      $('#image-preview').src=previewURL;$('#image-status').textContent=`Đã chọn ${file.name} · ${Math.ceil(blob.size/1024)} KB`;
+      $('#reset-image').hidden=false;
+    }catch(error){if(!closed&&token===selection){toast(error.message);fileInput.value='';$('#image-status').textContent=selectedImage?'Giữ ảnh đã chọn trước đó.':'Ảnh chưa hợp lệ. Vui lòng chọn lại.'}}
+    finally{if(token===selection)processing=false}
+  };
+  if($('#delete-dish'))$('#delete-dish').onclick=async()=>{
+    if(busy||!confirm('Xóa món này khỏi thực đơn?'))return;
+    setBusy(true);const ok=await persist(restaurant,dishes.filter(x=>x.id!==id));setBusy(false);
+    if(ok){close();render();toast('Đã xóa món')}
+  };
+  form.onsubmit=async e=>{
+    e.preventDefault();if(busy)return;if(processing)return toast('Vui lòng chờ xử lý ảnh xong.');
+    const f=new FormData(form);
+    const dish={id:id||crypto.randomUUID(),name:f.get('name').trim(),category:f.get('category'),price:Number(f.get('price')),description:f.get('description').trim(),image:f.get('image'),best:f.has('best'),available:d?.available??true};
+    if(!selectedImage&&!imageURLChanged&&d?.image?.startsWith('data:'))dish.image=d.image;
+    if(!dish.name)return;setBusy(true);
+    try{
+      if(selectedImage){
+        if(!uploadedURL)uploadedURL=backend?await backend.uploadImage(selectedImage):await imageDataURL(selectedImage);
+        dish.image=uploadedURL;
+      }
+      const next=d?dishes.map(x=>x.id===id?dish:x):[...dishes,dish];
+      if(await persist(restaurant,next)){setBusy(false);close();render();toast(d?'Đã cập nhật món':'Đã thêm món mới')}
+    }catch(error){toast(error.message||'Không tải được ảnh. Kiểm tra kết nối và cấu hình Storage rồi thử lại.')}
+    finally{if(!closed)setBusy(false)}
+  };
+  createIcons({icons});form.elements.name.focus();
+}
 function statusScreen(title, message, retry = false) {
  $('#app').innerHTML = `<main class="status-screen panel"><div class="eyebrow">QRMenu</div><h1>${escape(title)}</h1><p>${escape(message)}</p>${retry?'<button id="retry" class="button primary">Thử lại</button>':''}<a class="button secondary" href="/">Về trang quản lý</a></main>`;
  if($('#retry'))$('#retry').onclick=()=>boot();

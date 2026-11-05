@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 14 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 21 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -42,7 +42,11 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 - RLS chỉ cho chủ quán đọc dữ liệu của mình. Trình duyệt không có quyền ghi trực tiếp bảng; RPC kiểm tra tài khoản, bản quyền và dữ liệu trên mọi lần ghi.
 - Menu công khai đọc qua RPC theo slug ngẫu nhiên cố định, không lộ owner ID, email hoặc hash key. Menu ẩn khi không có bản quyền hiệu lực. Sau khi chỉnh sửa, khách tải lại menu để nhận dữ liệu mới; chưa có realtime.
 - Mỗi key gắn với tài khoản kích hoạt đầu tiên; nhiều key có thể gia hạn quyền cho cùng tài khoản. CLI quản trị tạo/gia hạn/thu hồi key qua service role, không có quyền quản trị trong frontend.
-- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Chưa có upload ảnh, thanh toán tự động, trang admin cấp key, đặt món hoặc quản lý bàn.
+- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key, đặt món hoặc quản lý bàn.
 - Dữ liệu demo không tự nhập sang tài khoản online, tránh đưa nhầm dữ liệu trình duyệt vào quán.
 
 **Trạng thái:** đã triển khai mã và kiểm tra SQL + giao diện giả lập. Chưa kết nối Supabase thật, kiểm tra gửi email thực tế hay triển khai tên miền. Cần hoàn thành các bước trong hướng dẫn và kiểm tra trên hai tài khoản/thiết bị trước khi vận hành thương mại.
+
+## Ảnh món ăn
+
+Chạy `supabase/storage.sql` trong Supabase SQL Editor trước khi dùng upload. Chọn ảnh từ thiết bị trong form món: JPG/PNG/WebP, tối đa 5 MB; ảnh được chuyển WebP, cạnh dài tối đa 1600px. Ảnh chỉ tải lên khi Lưu món. Storage giới hạn MIME/size và kiểm tra tài khoản + bản quyền còn hiệu lực trên insert/delete. Mỗi chủ quán chỉ ghi trong thư mục UID của mình, không ghi đè ảnh cũ. Bucket `menu-images` công khai để khách xem menu; ảnh vẫn truy cập được bằng URL kể cả khi bản quyền hết hạn. Không lưu tài liệu riêng tư vào bucket này. Ảnh cũ/ảnh tải thành công nhưng lưu menu thất bại được giữ lại để không vô tình xóa ảnh đang sử dụng; chưa có dọn ảnh mồ côi tự động. Demo lưu ảnh trong localStorage, có thể báo lỗi khi hết dung lượng.
