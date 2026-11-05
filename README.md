@@ -69,7 +69,7 @@ Giao diện phân biệt `over_email_send_rate_limit` với HTTP 429 chung; khô
 
 ## Gọi món bằng QR chung
 
-Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có Thêm món, tăng/giảm số lượng (1–99/món), ghi chú và Gửi đơn. Không cần tài khoản khách hoặc số bàn; một QR chung cho quán. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
+Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có bộ chọn SL: − 0 + ngay trên từng món, đồng bộ hai chiều với giỏ bên dưới. Tăng từ 0 để chọn món, giảm về 0 để bỏ món, tối đa 99/món; có ghi chú và nút Gửi đơn. Chọn số lượng chỉ cập nhật giỏ, không tự gửi đơn. Không cần tài khoản khách hoặc số bàn; một QR chung cho quán. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
 
 Trang Đơn gọi món có hàng chờ cũ nhất trước và lịch sử mới nhất trước; tối đa 200 đơn mỗi danh sách. Tổng hợp món tính trong danh sách đang chờ (Mới/Đã nhận/Đang chuẩn bị), không phải thống kê toàn bộ lịch sử. Tự tải lại mỗi 10 giây khi trang đang mở và tab hiển thị; không có thông báo khi đóng trang hoặc push notification.
 
