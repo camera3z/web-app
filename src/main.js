@@ -3,6 +3,7 @@ const icons = { ScanLine, ChevronsUpDown, LayoutDashboard, Utensils, QrCode, Sto
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
+import { sessionObserver, withLoadTimeout } from './session.js';
 import { categoryNames, canonicalCategory } from './categories.js';
 import { prepareImage, imageDataURL } from './images.js';
 import { createBackend, hasActiveLicense } from './backend.js';
@@ -176,12 +177,12 @@ async function boot() {
  statusScreen('Đang tải không gian của bạn…','Đang kết nối Supabase.');
  try {
    if(publicSlug!==null){
-     const menu=await backend.publicMenu(publicSlug);
+     const menu=await withLoadTimeout(backend.publicMenu(publicSlug));
      if(id!==bootId)return;
      if(!menu){statusScreen('Menu chưa sẵn sàng','Không tìm thấy menu hoặc bản quyền của quán không còn hiệu lực.');return}
      restaurant={name:menu.name,tagline:menu.tagline,address:menu.address};dishes=menu.dishes;view='public';render();return;
    }
-   const state=await backend.load();if(id!==bootId)return;
+   const state=await withLoadTimeout(backend.load());if(id!==bootId)return;
    account=state.user;cloudRestaurant=state.restaurant;licenses=state.licenses;
    restaurant=cloudRestaurant?{name:cloudRestaurant.name,tagline:cloudRestaurant.tagline,address:cloudRestaurant.address,categories:cloudRestaurant.categories||[]}:{name:'Quán của bạn',tagline:'Chào mừng bạn đến với quán.',address:''};
    dishes=cloudRestaurant?.dishes??[];
@@ -189,7 +190,5 @@ async function boot() {
    render();
  } catch(error){if(id===bootId)statusScreen('Không tải được dữ liệu',error.message||'Kiểm tra kết nối rồi thử lại.',true)}
 }
-if(supabase)supabase.auth.onAuthStateChange((event)=>{
- if(event==='SIGNED_IN'||event==='SIGNED_OUT')setTimeout(()=>boot(),0);
-});
+if(supabase)supabase.auth.onAuthStateChange(sessionObserver(()=>boot()));
 boot();

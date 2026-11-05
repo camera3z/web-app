@@ -18,7 +18,7 @@ const start=async(port,online)=>{
 const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()};
 const dish={id:'1',name:'Món online',category:'Cà phê',price:42000,description:'Từ server',image:'/images/coffee.svg',available:true,best:false};
 let cloud={id:'restaurant-1',slug:'quan-test',name:'Quán Online',tagline:'Xin chào',address:'Hà Nội',dishes:[dish],version:1};
-let active=true,failSave=false,offline=false;
+let active=true,failSave=false,offline=false,restaurantReads=0;
 const errors=[];
 try {
  const demo=await start(5186,false);const online=await start(5187,true);
@@ -37,7 +37,7 @@ try {
   if(path==='/auth/v1/otp')return json({});
   if(path==='/auth/v1/logout')return json({});
   if(path==='/rest/v1/licenses')return json(active?[{id:'license-1',expires_at:'2099-01-01T00:00:00Z',revoked:false}]:[]);
-  if(path==='/rest/v1/restaurants')return json(cloud);
+  if(path==='/rest/v1/restaurants'){restaurantReads++;return json(cloud);}
   if(path==='/rest/v1/rpc/save_restaurant'){
    if(failSave)return json({message:'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải lại trang',code:'P0001'},400);
    const body=route.request().postDataJSON();assert.equal(body.expected_version,cloud.version);
@@ -53,6 +53,11 @@ try {
  const payload=Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,aud:'authenticated'})).toString('base64url');
  await page.evaluate(({user,token})=>localStorage.setItem('sb-qrmenu-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user})),{user,token:`e30.${payload}.test`});
  await page.reload();await page.locator('[data-nav=menu]').click();await page.getByRole('heading',{name:'Món online',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),1);
+ await page.locator('#add').click();await page.locator('[name=name]').fill('Nội dung đang nhập');await page.locator('[name=category]').fill('Món chính');
+ const readsBeforeFocus=restaurantReads;
+ await page.evaluate(async()=>{for(let i=0;i<3;i++){document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('visibilitychange'))}await new Promise(r=>setTimeout(r,300))});
+ assert.equal(await page.locator('[name=name]').inputValue(),'Nội dung đang nhập');assert.equal(restaurantReads,readsBeforeFocus);assert.equal(await page.locator('.status-screen').count(),0);await page.locator('#cancel-modal').click();
+ console.log('PASS session focus: same-account revalidation preserves unsaved form without reloading data');
  await page.locator('[data-edit]').click();await page.locator('[name=price]').fill('57000');await page.locator('#dish-photo-file').setInputFiles({name:'online.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.getByText(/Đã chọn online.png/).waitFor();await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.dish-bottom strong')?.textContent==='57.000đ');assert.equal(cloud.dishes[0].price,57000);assert.match(cloud.dishes[0].image,/storage\/v1\/object\/public\/menu-images\/11111111-1111-4111-8111-111111111111\//);
  failSave=true;await page.locator('[data-toggle]').uncheck();await page.getByText('Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải lại trang',{exact:true}).waitFor();assert.equal(await page.locator('[data-toggle]').isChecked(),true);assert.equal(cloud.dishes[0].available,true);failSave=false;
  console.log('PASS online UI (mock API): signed-out login, server data, save, failed-write rollback');
