@@ -80,3 +80,5 @@ RLS chỉ chủ quán đọc đơn, cập nhật trạng thái qua RPC kiểm tr
 Kiểm thử SQL dùng PostgreSQL WASM; kiểm thử trình duyệt dùng API giả lập gồm mất phản hồi sau khi server tạo đơn rồi gửi lại. Cần kiểm tra một đơn thực tế trên điện thoại và trang quản lý sau khi chạy migration/deploy.
 
 Giỏ chưa gửi chỉ giữ trong lần mở trang hiện tại: mở lại hoặc tải lại menu bắt đầu số lượng 0, không tự chọn từ bản nháp cũ. Chuyển danh mục trong cùng trang vẫn giữ lựa chọn. Nút Xóa giỏ bỏ toàn bộ lựa chọn và ghi chú. Riêng yêu cầu đã gửi nhưng chưa xác định kết quả vẫn được khôi phục/khóa chỉnh để gửi lại an toàn, và mã đơn đã gửi gần nhất vẫn được giữ.
+
+Trang quản lý có bộ chuyển Thực đơn / Đơn gọi món ngay trên nội dung chính (cả trang Tổng quan). Banner giới thiệu lớn đã bỏ để ưu tiên quản lý thực đơn và xử lý đơn; các mục ở thanh bên vẫn hoạt động.
