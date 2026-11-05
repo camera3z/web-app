@@ -153,3 +153,11 @@ Sau khi cập nhật frontend, trang tài khoản mặc định có email + mậ
 Khách đăng ký bằng email và mật khẩu mới (ít nhất 8 ký tự), xác nhận email rồi đăng nhập. Sau đó kích hoạt key để tạo/sửa menu. Khách đã đăng nhập bằng liên kết email trước đây không cần tạo tài khoản lại: dùng cùng email tại Quên mật khẩu, mở liên kết mới nhất rồi đặt mật khẩu; hoặc vào Tài khoản & bản quyền → Đặt / đổi mật khẩu khi đã đăng nhập. Dữ liệu quán và bản quyền giữ nguyên.
 
 Supabase xử lý lưu trữ mật khẩu; không thêm bảng passwords, không dùng service_role ở frontend. Dịch vụ gửi email có thể yêu cầu SMTP và có giới hạn gửi. Đăng nhập bằng mật khẩu giảm nhu cầu email mỗi lần sử dụng nhưng vẫn cần email cho xác nhận tài khoản/khôi phục mật khẩu. Cần kiểm tra một tài khoản mới, email xác nhận và quên mật khẩu thật sau khi deploy; kiểm thử mock không xác minh nhà cung cấp email.
+
+## Xử lý 429 và gửi email thực tế
+
+Trong Authentication Logs, kiểm tra error code: `over_email_send_rate_limit` là hạn mức gửi email; `over_request_rate_limit` là giới hạn yêu cầu, không tự kết luận do SMTP. Không liên tục bấm Đăng ký. Ứng dụng có khoảng chờ mặc định 60 giây khi thiếu thông tin Retry-After; thời gian này chỉ ngăn gửi dồn, không hứa hạn mức phục hồi sau 60 giây.
+
+Để dùng custom SMTP: chọn nhà cung cấp email giao dịch, xác minh tên miền gửi bằng các bản ghi DNS mà nhà cung cấp cấp, rồi vào Supabase Authentication → Email / SMTP Settings để bật custom SMTP. Nhập Sender email đã xác minh, Sender name QRMenu, Host, Port, Username và Password theo tài liệu nhà cung cấp. Nhập mật khẩu SMTP/API key trực tiếp trong Supabase, không đưa vào VITE_, GitHub hoặc chat. Lưu cấu hình, kiểm tra hạn mức Authentication → Rate Limits phù hợp gói dịch vụ và năng lực SMTP; không tắt bảo vệ tần suất để chữa lỗi.
+
+Kiểm tra một email đăng ký và một email khôi phục thật sau khi xác minh sender và lưu cấu hình. Nếu chưa có nhà cung cấp SMTP thì đây là bước chưa hoàn tất; không coi việc cập nhật frontend là đã sửa xong dịch vụ email.

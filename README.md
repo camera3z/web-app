@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 26 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 29 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -62,3 +62,7 @@ Quay lại tab với cùng tài khoản không khởi động lại giao diện 
 ## Đăng ký và mật khẩu
 
 Trang Tài khoản & bản quyền có đăng ký email/mật khẩu, đăng nhập mật khẩu, quên mật khẩu và liên kết đăng nhập tùy chọn. Mật khẩu mới tối thiểu 8 ký tự, có nhập xác nhận. Supabase Auth xử lý mật khẩu; ứng dụng không tự lưu mật khẩu vào database/localStorage. Người đăng ký mới cần xác nhận email nếu Confirm email được bật. Đăng ký tài khoản không tự cấp bản quyền. Tài khoản cũ dùng magic link có thể dùng Quên mật khẩu hoặc Đặt / đổi mật khẩu khi đã đăng nhập; giữ nguyên UID và dữ liệu quán. Thêm URL chính xác `https://TEN-MIEN/?reset=1` vào Supabase Authentication → URL Configuration → Redirect URLs để liên kết khôi phục quay về form đặt mật khẩu. Email gửi thật và cập nhật mật khẩu trên project thật cần kiểm tra sau khi triển khai; kiểm thử tự động sử dụng API giả lập.
+
+## Giới hạn đăng ký/email
+
+Giao diện phân biệt `over_email_send_rate_limit` với HTTP 429 chung; không coi mọi lỗi 429 là lỗi người dùng. Gửi email thành công hoặc gặp giới hạn sẽ khóa gửi lại với đếm ngược; mặc định chờ cục bộ 60 giây nếu SDK không cung cấp thời gian chờ. Đây không phải thời điểm chắc chắn hạn mức server phục hồi. Các form đăng ký/khôi phục/liên kết email dùng chung khoảng chờ, đăng nhập mật khẩu không bị khóa bởi giới hạn email. Chỉ lưu deadline trong trình duyệt, không lưu email/mật khẩu. Cần cấu hình custom SMTP trong Supabase khi dùng với khách hàng thật; sửa frontend không gỡ hạn mức hoặc cấu hình nhà cung cấp email.

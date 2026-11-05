@@ -18,7 +18,7 @@ const start=async(port,online)=>{
 const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()};
 const dish={id:'1',name:'Món online',category:'Cà phê',price:42000,description:'Từ server',image:'/images/coffee.svg',available:true,best:false};
 let cloud={id:'restaurant-1',slug:'quan-test',name:'Quán Online',tagline:'Xin chào',address:'Hà Nội',dishes:[dish],version:1};
-let active=true,failSave=false,offline=false,restaurantReads=0;
+let active=true,failSave=false,offline=false,restaurantReads=0,signupRequests=0;
 const errors=[];
 try {
  const demo=await start(5186,false);const online=await start(5187,true);
@@ -34,7 +34,7 @@ try {
   if(path.startsWith('/storage/v1/object/menu-images/'))return json({Key:path});
   if(path.startsWith('/storage/v1/object/public/menu-images/'))return route.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});
   if(path==='/auth/v1/user')return json(user);
-  if(path==='/auth/v1/signup')return json(user);
+  if(path==='/auth/v1/signup'){signupRequests++;return signupRequests===1?json({msg:'email rate limit exceeded',error_code:'over_email_send_rate_limit'},429):json(user);}
   if(path==='/auth/v1/recover')return json({});
   if(path==='/auth/v1/token'){
    const body=route.request().postDataJSON();
@@ -58,9 +58,13 @@ try {
  await context.route('https://qrmenu-test.supabase.co/**',mockRoute);
  // Configured environment without a session must show login, never an auth error or demo.
  await page.goto(online);await page.getByRole('heading',{name:'Đăng nhập',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),0);
- await page.locator('[data-auth-mode=signup]').click();
+ await page.clock.install();await page.locator('[data-auth-mode=signup]').click();
  await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('Test-password-123!');await page.locator('[name=confirm_password]').fill('Mismatch-password!');await page.locator('#auth-submit').click();await page.getByText('Hai mật khẩu chưa khớp. Vui lòng nhập lại.').waitFor();
- await page.locator('[name=confirm_password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByText(/Nếu email đủ điều kiện đăng ký/).waitFor();
+ await page.locator('[name=confirm_password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByText(/Dịch vụ gửi email đang đạt giới hạn/).waitFor();assert.equal(await page.locator('#auth-submit').isDisabled(),true);
+ await page.evaluate(()=>document.querySelector('#auth-form').requestSubmit());assert.equal(signupRequests,1);
+ await page.reload();await page.locator('[data-auth-mode=signup]').click();assert.equal(await page.locator('#auth-submit').isDisabled(),true);await page.clock.fastForward(61000);
+ await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('Test-password-123!');await page.locator('[name=confirm_password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByText(/Nếu email đủ điều kiện đăng ký/).waitFor();await page.clock.fastForward(61000);
+ console.log('PASS auth limits: specific quota feedback, blocked duplicate submit, reload persistence, cooldown expiry');
  await page.locator('[data-auth-mode=signin]').click();await page.locator('[data-auth-mode=forgot]').click();await page.locator('[name=email]').fill(user.email);await page.locator('#auth-submit').click();await page.getByText(/Nếu email có tài khoản/).waitFor();
  await page.locator('[data-auth-mode=signin]').click();await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('wrong-password');await page.locator('#auth-submit').click();await page.getByText('Email hoặc mật khẩu không đúng.').waitFor();
  await page.locator('[name=password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByRole('heading',{name:'Tài khoản của bạn',exact:true}).waitFor();
