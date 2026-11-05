@@ -35,7 +35,25 @@ test('customer orders: server pricing, retries, isolation and processing',async 
   await role(A);await db.query("select public.set_menu_order_status($1,'new','accepted')",[orderId]);await assert.rejects(()=>db.query("select public.set_menu_order_status($1,'new','rejected')",[orderId]),/thiết bị khác/);await db.query("select public.set_menu_order_status($1,'accepted','preparing')",[orderId]);await db.query("select public.set_menu_order_status($1,'preparing','served')",[orderId]);await assert.rejects(()=>db.query("select public.set_menu_order_status($1,'served','new')",[orderId]),/không hợp lệ/);
   await assert.rejects(()=>db.query("update public.menu_orders set total=0 where id=$1",[orderId]),/permission denied/);
  });
- await t.test('client submission limit rejects sixth order in a minute',async()=>{await role(null);for(let i=0;i<4;i++)await place();await assert.rejects(()=>place(),/quá nhanh/)});
+ await t.test('cash collection, ownership, idempotency and completion guards',async()=>{
+    await db.exec('reset role');
+    const payments=await readFile(new URL('../supabase/payments.sql',import.meta.url),'utf8');await db.exec(payments);await db.exec(payments);
+    await role(null);const cashOrder=(await place(undefined,randomUUID(),30000,'Thanh toán test',randomUUID())).rows[0].o;
+    await role(A);const id=(await db.query('select id from public.menu_orders where order_code=$1',[cashOrder.code])).rows[0].id;
+    await assert.rejects(()=>db.query('select public.pay_menu_order_cash($1,20000)',[id]),/đủ thanh toán/);
+    await assert.rejects(()=>db.query('select public.pay_menu_order_cash($1,30000.5)',[id]),/số nguyên/);
+    await role(B);await assert.rejects(()=>db.query('select public.pay_menu_order_cash($1,50000)',[id]),/Không có quyền/);
+    await role(A);await db.query("select public.set_menu_order_status($1,'new','accepted')",[id]);await db.query("select public.set_menu_order_status($1,'accepted','preparing')",[id]);
+    await assert.rejects(()=>db.query("select public.set_menu_order_status($1,'preparing','served')",[id]),/thanh toán/);
+    const paid=(await db.query('select public.pay_menu_order_cash($1,50000) as p',[id])).rows[0].p;assert.equal(paid.change,20000);assert.equal(paid.cash_received,50000);assert.ok(paid.paid_at);
+    const retry=(await db.query('select public.pay_menu_order_cash($1,100000) as p',[id])).rows[0].p;assert.equal(retry.cash_received,50000);assert.equal(retry.paid_at,paid.paid_at);
+    await assert.rejects(()=>db.query("select public.set_menu_order_status($1,'preparing','rejected')",[id]),/đã thu tiền/);
+    await db.query("select public.set_menu_order_status($1,'preparing','served')",[id]);
+    const row=(await db.query('select payment_status,payment_method,cash_received,status from public.menu_orders where id=$1',[id])).rows[0];assert.equal(row.payment_status,'paid');assert.equal(row.payment_method,'cash');assert.equal(row.status,'served');
+    await assert.rejects(()=>db.query("update public.menu_orders set payment_status='unpaid' where id=$1",[id]),/permission denied/);
+    await role(null);await assert.rejects(()=>db.query('select public.pay_menu_order_cash($1,50000)',[id]),/permission denied/);
+  });
+  await t.test('client submission limit rejects sixth order in a minute',async()=>{await role(null);for(let i=0;i<4;i++)await place();await assert.rejects(()=>place(),/quá nhanh/)});
  await t.test('expired license blocks new orders but retry receipt is retained',async()=>{
   await db.exec('reset role');await db.query("update public.licenses set expires_at=now()-interval '1 day' where user_id=$1",[A]);await role(null);await assert.rejects(()=>place(undefined,randomUUID(),30000,'',randomUUID()),/chưa nhận đơn/);assert.equal((await place(undefined,request)).rows[0].o.code,receipt.code);
  });

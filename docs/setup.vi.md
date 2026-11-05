@@ -172,3 +172,13 @@ Kiểm tra một email đăng ký và một email khôi phục thật sau khi x�
 6. Khách chưa xác định được kết quả do mất mạng: dùng nút Thử lại yêu cầu cũ, không xóa dữ liệu trình duyệt để gửi một đơn mới. Server trả lại cùng mã nếu đã nhận.
 
 Một QR chung, không lưu số bàn hoặc yêu cầu khách cung cấp số điện thoại. Quán tổ chức giao món bằng mã đơn và tự thu tiền. Lưu ý hàng chờ tự làm mới khi mở trang, chưa có push/âm báo; tối đa 200 đơn được hiển thị mỗi danh sách.
+
+## Thanh toán tiền mặt / in phiếu
+
+1. Chạy toàn bộ supabase/payments.sql sau orders.sql. Migration thêm dữ liệu thanh toán, RPC thu tiền và ràng buộc hoàn tất. Không tự đánh dấu đơn cũ là đã trả tiền. Nếu chạy lại các schema cũ, chạy payments.sql cuối cùng để giữ phiên bản RPC mới nhất.
+2. Cập nhật frontend lên VPS. Khi khách trả tiền, nhấn Thu tiền mặt, nhập số tiền nhận; kiểm tra tiền thừa rồi Xác nhận đã thu tiền.
+3. Nhấn In phiếu, chọn máy in trong hộp thoại trình duyệt. Cho phép popup nếu trình duyệt chặn. Chọn khổ giấy theo máy in (thường 80 mm), kiểm tra xem trước và tắt header/footer trình duyệt nếu cần. Máy in phải được cài đặt trước trên máy quán; không cần cài driver trên VPS.
+4. Khi phục vụ xong, nhấn Hoàn tất phục vụ. Nút này khi chưa trả tiền sẽ mở form thu tiền; sau khi xác nhận cần nhấn hoàn tất lần nữa. Đơn chuyển vào Lịch sử.
+5. Có thể In tạm tính trước thanh toán; phiếu sẽ ghi rõ chưa thanh toán. Đơn đã trả tiền không được từ chối, vì chưa có quy trình hoàn tiền trong phiên bản này.
+
+Kiểm tra với một đơn thật, xác minh tiền khách đưa/tiền thừa và nội dung phiếu trước khi dùng với khách. Phần báo cáo doanh thu/món bán chạy được để lại cho giai đoạn sau.
