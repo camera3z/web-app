@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 40 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 41 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -83,8 +83,10 @@ Giỏ chưa gửi chỉ giữ trong lần mở trang hiện tại: mở lại ho
 
 Trang chủ mặc định là bảng điều hành đơn hàng trực tiếp, không phải trang giới thiệu hoặc tab thực đơn. Có bốn ô số liệu (đang chờ, mới, đã nhận, đang chuẩn bị), bảng đơn gọn với thời gian tạo/cập nhật, món, ghi chú, tổng số phần, tổng tiền, trạng thái và thao tác. Có tìm theo mã/món/ghi chú, lọc theo trạng thái, lịch sử và tổng món cần chuẩn bị theo bộ lọc. Mục Đơn gọi món dùng cùng bảng đầy đủ; mục Thực đơn tách riêng. Desktop dùng bảng, điện thoại xếp thành từng dòng thông tin. Số liệu dựa trên tối đa 200 đơn đang chờ; lịch sử tối đa 200 đơn hoàn tất mới nhất. Không phải báo cáo doanh thu toàn bộ.
 
-## Thu tiền mặt và in phiếu
+## In đơn theo luồng phục vụ
 
-Chạy `supabase/payments.sql` sau orders.sql trước khi cập nhật frontend. Đơn cũ mặc định chưa thanh toán; hệ thống không suy đoán đã thu tiền. Mỗi đơn có trạng thái thanh toán độc lập với trạng thái phục vụ, lưu phương thức cash, thời gian thu và tiền khách đưa. Nút Thu tiền mặt mở form tính tiền thừa, chỉ xác nhận sau khi đã nhận tiền. RPC khóa đơn và trả lại kết quả cũ nếu gửi lặp, không thu hai lần. Không cho hoàn tất phục vụ khi chưa thanh toán và không cho từ chối đơn đã thu tiền. Chưa có hoàn tiền/hủy thanh toán hoặc nhiều lần thanh toán.
+Luồng chính: Nhận đơn → Bắt đầu chuẩn bị → In đơn (tùy chọn) / Đã phục vụ. Nút In đơn chỉ hiện ở trạng thái Đang chuẩn bị và Lịch sử đã phục vụ để in lại, đặt cạnh nút Đã phục vụ. Không có bước thu tiền bắt buộc và không cần in để hoàn tất. Phiếu gọi món chứa cửa hàng, mã đơn, thời gian, món/số lượng/giá, tổng và ghi chú; không khẳng định đã thanh toán.
 
-In tạm tính trước khi thu tiền; In phiếu sau khi thu tiền. Cửa sổ phiếu có mã đơn, cửa hàng/địa chỉ, món/số lượng/đơn giá/thành tiền, tổng, ghi chú, trạng thái thanh toán, tiền khách đưa/thừa. Trình duyệt mở hộp thoại in; máy in phải được cài trên máy của quán. Bố cục dạng phiếu rộng 72 mm, dùng giấy 80 mm hoặc in trên A4 theo cài đặt máy in. Không hỗ trợ in im lặng hoặc kết nối trực tiếp máy in Bluetooth/USB từ website. Kiểm thử xác minh nội dung cửa sổ phiếu, không xác minh máy in vật lý.
+Cài đặt mới dùng orders.sql. Nếu trước đây đã chạy payments.sql, chạy supabase/order-workflow.sql để bỏ ràng buộc thanh toán bắt buộc và khôi phục luồng xử lý. Script không xóa đơn hay dữ liệu thanh toán đã ghi. payments.sql là tính năng cũ, không chạy lại trong luồng này.
+
+In qua hộp thoại trình duyệt, máy in được cài trên máy quản lý; bố cục phiếu rộng 72 mm phù hợp giấy 80 mm hoặc A4 tùy cài đặt. Không hỗ trợ in im lặng/điều khiển máy in trực tiếp. Kiểm thử xác minh cửa sổ và nội dung phiếu, chưa kiểm tra giấy in thực tế. Phần dữ liệu/thống kê mở rộng để sau.

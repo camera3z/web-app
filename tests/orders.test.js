@@ -53,6 +53,13 @@ test('customer orders: server pricing, retries, isolation and processing',async 
     await assert.rejects(()=>db.query("update public.menu_orders set payment_status='unpaid' where id=$1",[id]),/permission denied/);
     await role(null);await assert.rejects(()=>db.query('select public.pay_menu_order_cash($1,50000)',[id]),/permission denied/);
   });
+  await t.test('corrected workflow finishes unpaid orders without mandatory cash collection',async()=>{
+    await db.exec('reset role');const workflow=await readFile(new URL('../supabase/order-workflow.sql',import.meta.url),'utf8');await db.exec(workflow);await db.exec(workflow);
+    await role(null);const receipt=(await place(undefined,randomUUID(),30000,'Luồng in đơn',randomUUID())).rows[0].o;
+    await role(A);const id=(await db.query('select id from public.menu_orders where order_code=$1',[receipt.code])).rows[0].id;
+    await db.query("select public.set_menu_order_status($1,'new','accepted')",[id]);await db.query("select public.set_menu_order_status($1,'accepted','preparing')",[id]);await db.query("select public.set_menu_order_status($1,'preparing','served')",[id]);
+    const row=(await db.query('select status,payment_status from public.menu_orders where id=$1',[id])).rows[0];assert.equal(row.status,'served');assert.equal(row.payment_status,'unpaid');
+  });
   await t.test('client submission limit rejects sixth order in a minute',async()=>{await role(null);for(let i=0;i<4;i++)await place();await assert.rejects(()=>place(),/quá nhanh/)});
  await t.test('expired license blocks new orders but retry receipt is retained',async()=>{
   await db.exec('reset role');await db.query("update public.licenses set expires_at=now()-interval '1 day' where user_id=$1",[A]);await role(null);await assert.rejects(()=>place(undefined,randomUUID(),30000,'',randomUUID()),/chưa nhận đơn/);assert.equal((await place(undefined,request)).rows[0].o.code,receipt.code);

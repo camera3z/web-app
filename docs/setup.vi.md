@@ -173,12 +173,8 @@ Kiểm tra một email đăng ký và một email khôi phục thật sau khi x�
 
 Một QR chung, không lưu số bàn hoặc yêu cầu khách cung cấp số điện thoại. Quán tổ chức giao món bằng mã đơn và tự thu tiền. Lưu ý hàng chờ tự làm mới khi mở trang, chưa có push/âm báo; tối đa 200 đơn được hiển thị mỗi danh sách.
 
-## Thanh toán tiền mặt / in phiếu
+## In đơn khi chuẩn bị
 
-1. Chạy toàn bộ supabase/payments.sql sau orders.sql. Migration thêm dữ liệu thanh toán, RPC thu tiền và ràng buộc hoàn tất. Không tự đánh dấu đơn cũ là đã trả tiền. Nếu chạy lại các schema cũ, chạy payments.sql cuối cùng để giữ phiên bản RPC mới nhất.
-2. Cập nhật frontend lên VPS. Khi khách trả tiền, nhấn Thu tiền mặt, nhập số tiền nhận; kiểm tra tiền thừa rồi Xác nhận đã thu tiền.
-3. Nhấn In phiếu, chọn máy in trong hộp thoại trình duyệt. Cho phép popup nếu trình duyệt chặn. Chọn khổ giấy theo máy in (thường 80 mm), kiểm tra xem trước và tắt header/footer trình duyệt nếu cần. Máy in phải được cài đặt trước trên máy quán; không cần cài driver trên VPS.
-4. Khi phục vụ xong, nhấn Hoàn tất phục vụ. Nút này khi chưa trả tiền sẽ mở form thu tiền; sau khi xác nhận cần nhấn hoàn tất lần nữa. Đơn chuyển vào Lịch sử.
-5. Có thể In tạm tính trước thanh toán; phiếu sẽ ghi rõ chưa thanh toán. Đơn đã trả tiền không được từ chối, vì chưa có quy trình hoàn tiền trong phiên bản này.
+Nếu đã chạy payments.sql, chạy toàn bộ supabase/order-workflow.sql trước khi cập nhật frontend. Script gỡ ràng buộc thanh toán bắt buộc, giữ nguyên đơn/dữ liệu đã có. Không chạy lại payments.sql sau bước này.
 
-Kiểm tra với một đơn thật, xác minh tiền khách đưa/tiền thừa và nội dung phiếu trước khi dùng với khách. Phần báo cáo doanh thu/món bán chạy được để lại cho giai đoạn sau.
+Sau cập nhật, chọn Nhận đơn, rồi Bắt đầu chuẩn bị. Lúc này In đơn xuất hiện cạnh Đã phục vụ. In đơn mở phiếu gọi món trong cửa sổ mới và hộp thoại in; chọn máy in đã cài trên máy quán, kiểm tra khổ giấy/xem trước. Khi xong nhấn Đã phục vụ để chuyển vào Lịch sử. Không bắt buộc in hoặc xác nhận thu tiền. Đơn đã phục vụ có thể in lại trong Lịch sử.

@@ -53,12 +53,9 @@ export function createBackend(client) {
       return checked(await client.rpc('place_menu_order', {menu_slug:slug,order_items:items,order_note:note,request_token:requestToken,client_token:clientToken,expected_total:total}));
     },
     async orders(restaurantId, history=false) {
-      let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at,payment_status,payment_method,paid_at,cash_received').eq('restaurant_id',restaurantId);
+      let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at').eq('restaurant_id',restaurantId);
       query=query.in('status',history?['served','rejected']:['new','accepted','preparing']);
       return checked(await query.order('created_at',{ascending:!history}).limit(200));
-    },
-    async payCash(id, amount) {
-      return checked(await client.rpc('pay_menu_order_cash',{order_id:id,cash_amount:amount}));
     },
     async setOrderStatus(id, expected, next) {
       return checked(await client.rpc('set_menu_order_status',{order_id:id,expected_status:expected,next_status:next}));
