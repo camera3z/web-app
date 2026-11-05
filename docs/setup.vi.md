@@ -145,3 +145,11 @@ Các bài kiểm tra tự động dùng PostgreSQL WASM và API giả lập; kh�
 ## Nâng cấp danh mục tự nhập
 
 Với dự án đã cài đặt, chạy `supabase/categories.sql` trong SQL Editor trước khi cập nhật frontend. Script chỉ thêm danh sách danh mục riêng cho từng quán và cập nhật hàm lưu thực đơn; không xóa món, quán hoặc bản quyền. Bản cài mới dùng schema.sql đã có sẵn tính năng này. Ô Danh mục cho phép gõ mới hoặc chọn gợi ý đã lưu; danh mục mới được lưu khi Lưu món thành công.
+
+## Đăng ký, đăng nhập email/mật khẩu
+
+Sau khi cập nhật frontend, trang tài khoản mặc định có email + mật khẩu và nút Đăng ký. Bật Email provider và cho phép đăng ký tài khoản trong Supabase Authentication. Giữ xác nhận email cho khách mới. Site URL là `https://menu.filezuno.net`; trong Redirect URLs thêm `https://menu.filezuno.net/?reset=1`, giữ các URL gốc hiện có. Không cần SQL mới cho tính năng này.
+
+Khách đăng ký bằng email và mật khẩu mới (ít nhất 8 ký tự), xác nhận email rồi đăng nhập. Sau đó kích hoạt key để tạo/sửa menu. Khách đã đăng nhập bằng liên kết email trước đây không cần tạo tài khoản lại: dùng cùng email tại Quên mật khẩu, mở liên kết mới nhất rồi đặt mật khẩu; hoặc vào Tài khoản & bản quyền → Đặt / đổi mật khẩu khi đã đăng nhập. Dữ liệu quán và bản quyền giữ nguyên.
+
+Supabase xử lý lưu trữ mật khẩu; không thêm bảng passwords, không dùng service_role ở frontend. Dịch vụ gửi email có thể yêu cầu SMTP và có giới hạn gửi. Đăng nhập bằng mật khẩu giảm nhu cầu email mỗi lần sử dụng nhưng vẫn cần email cho xác nhận tài khoản/khôi phục mật khẩu. Cần kiểm tra một tài khoản mới, email xác nhận và quên mật khẩu thật sau khi deploy; kiểm thử mock không xác minh nhà cung cấp email.

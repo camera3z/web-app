@@ -34,6 +34,14 @@ try {
   if(path.startsWith('/storage/v1/object/menu-images/'))return json({Key:path});
   if(path.startsWith('/storage/v1/object/public/menu-images/'))return route.fulfill({contentType:'image/png',body:Buffer.from(png,'base64')});
   if(path==='/auth/v1/user')return json(user);
+  if(path==='/auth/v1/signup')return json(user);
+  if(path==='/auth/v1/recover')return json({});
+  if(path==='/auth/v1/token'){
+   const body=route.request().postDataJSON();
+   if(body.password!=='Test-password-123!')return json({msg:'Invalid login credentials',error_code:'invalid_credentials'},400);
+   const payload=Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,aud:'authenticated'})).toString('base64url');
+   return json({access_token:`e30.${payload}.test`,refresh_token:'test-refresh',token_type:'bearer',expires_in:3600,user});
+  }
   if(path==='/auth/v1/otp')return json({});
   if(path==='/auth/v1/logout')return json({});
   if(path==='/rest/v1/licenses')return json(active?[{id:'license-1',expires_at:'2099-01-01T00:00:00Z',revoked:false}]:[]);
@@ -49,10 +57,17 @@ try {
  };
  await context.route('https://qrmenu-test.supabase.co/**',mockRoute);
  // Configured environment without a session must show login, never an auth error or demo.
- await page.goto(online);await page.getByRole('heading',{name:'Đăng nhập bằng email',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),0);
- const payload=Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600,aud:'authenticated'})).toString('base64url');
- await page.evaluate(({user,token})=>localStorage.setItem('sb-qrmenu-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test-refresh',token_type:'bearer',expires_at:Math.floor(Date.now()/1000)+3600,user})),{user,token:`e30.${payload}.test`});
- await page.reload();await page.locator('[data-nav=menu]').click();await page.getByRole('heading',{name:'Món online',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),1);
+ await page.goto(online);await page.getByRole('heading',{name:'Đăng nhập',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),0);
+ await page.locator('[data-auth-mode=signup]').click();
+ await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('Test-password-123!');await page.locator('[name=confirm_password]').fill('Mismatch-password!');await page.locator('#auth-submit').click();await page.getByText('Hai mật khẩu chưa khớp. Vui lòng nhập lại.').waitFor();
+ await page.locator('[name=confirm_password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByText(/Nếu email đủ điều kiện đăng ký/).waitFor();
+ await page.locator('[data-auth-mode=signin]').click();await page.locator('[data-auth-mode=forgot]').click();await page.locator('[name=email]').fill(user.email);await page.locator('#auth-submit').click();await page.getByText(/Nếu email có tài khoản/).waitFor();
+ await page.locator('[data-auth-mode=signin]').click();await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('wrong-password');await page.locator('#auth-submit').click();await page.getByText('Email hoặc mật khẩu không đúng.').waitFor();
+ await page.locator('[name=password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByRole('heading',{name:'Tài khoản của bạn',exact:true}).waitFor();
+ await page.locator('[data-auth-mode=password]').click();await page.locator('[name=password]').fill('Test-password-456!');await page.locator('[name=confirm_password]').fill('Test-password-456!');await page.locator('#auth-submit').click();await page.getByRole('heading',{name:'Tài khoản của bạn',exact:true}).waitFor();
+ await page.goto(online+'/?reset=1');await page.getByRole('heading',{name:'Đặt mật khẩu',exact:true}).waitFor();await page.locator('[name=password]').fill('Test-password-456!');await page.locator('[name=confirm_password]').fill('Test-password-456!');await page.locator('#auth-submit').click();await page.getByRole('heading',{name:'Tài khoản của bạn',exact:true}).waitFor();assert.equal(new URL(page.url()).searchParams.has('reset'),false);
+ console.log('PASS auth (mock API): signup, mismatch validation, recovery request, invalid password, password login, set password, recovery form');
+ await page.locator('[data-nav=menu]').click();await page.getByRole('heading',{name:'Món online',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),1);
  await page.locator('#add').click();await page.locator('[name=name]').fill('Nội dung đang nhập');await page.locator('[name=category]').fill('Món chính');
  const readsBeforeFocus=restaurantReads;
  await page.evaluate(async()=>{for(let i=0;i<3;i++){document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('visibilitychange'))}await new Promise(r=>setTimeout(r,300))});

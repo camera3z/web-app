@@ -12,7 +12,7 @@ npm run dev
 ```
 
 - **Chưa cấu hình Supabase:** chạy demo, dữ liệu lưu tại trình duyệt. QR demo không đồng bộ sang điện thoại khác.
-- **Có cấu hình Supabase:** đăng nhập email, kích hoạt bản quyền, lưu quán và thực đơn online. Mỗi tài khoản có một quán và một đường dẫn QR cố định. Không dùng dữ liệu demo thay thế khi lỗi mạng.
+- **Có cấu hình Supabase:** đăng nhập email/mật khẩu hoặc liên kết email, kích hoạt bản quyền, lưu quán và thực đơn online. Mỗi tài khoản có một quán và một đường dẫn QR cố định. Không dùng dữ liệu demo thay thế khi lỗi mạng.
 
 Hướng dẫn kết nối, cấp key và đưa lên tên miền: **[docs/setup.vi.md](docs/setup.vi.md)**.
 
@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 25 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 26 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -58,3 +58,7 @@ Chủ quán nhập tên mới hoặc chọn gợi ý đã dùng trong ô Danh m�
 ## Phiên đăng nhập
 
 Quay lại tab với cùng tài khoản không khởi động lại giao diện hoặc xóa form đang nhập. Chỉ đổi tài khoản/đăng xuất mới tải lại không gian. Lần mở trang hoặc tải lại trang vẫn cần kết nối Supabase; yêu cầu tải dữ liệu quá 20 giây sẽ hiện thông báo và nút Thử lại. Chưa hỗ trợ lưu form nháp qua việc đóng tab hoặc tải lại trang.
+
+## Đăng ký và mật khẩu
+
+Trang Tài khoản & bản quyền có đăng ký email/mật khẩu, đăng nhập mật khẩu, quên mật khẩu và liên kết đăng nhập tùy chọn. Mật khẩu mới tối thiểu 8 ký tự, có nhập xác nhận. Supabase Auth xử lý mật khẩu; ứng dụng không tự lưu mật khẩu vào database/localStorage. Người đăng ký mới cần xác nhận email nếu Confirm email được bật. Đăng ký tài khoản không tự cấp bản quyền. Tài khoản cũ dùng magic link có thể dùng Quên mật khẩu hoặc Đặt / đổi mật khẩu khi đã đăng nhập; giữ nguyên UID và dữ liệu quán. Thêm URL chính xác `https://TEN-MIEN/?reset=1` vào Supabase Authentication → URL Configuration → Redirect URLs để liên kết khôi phục quay về form đặt mật khẩu. Email gửi thật và cập nhật mật khẩu trên project thật cần kiểm tra sau khi triển khai; kiểm thử tự động sử dụng API giả lập.

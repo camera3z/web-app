@@ -10,6 +10,18 @@ export function createBackend(client) {
     async login(email) {
       checked(await client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } }));
     },
+    async signIn(email, password) {
+      return checked(await client.auth.signInWithPassword({ email, password }));
+    },
+    async signUp(email, password) {
+      return checked(await client.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }));
+    },
+    async resetPassword(email) {
+      checked(await client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname + '?reset=1' }));
+    },
+    async setPassword(password) {
+      checked(await client.auth.updateUser({ password }));
+    },
     async logout() { checked(await client.auth.signOut()); },
     async load() {
       const user = await this.user();

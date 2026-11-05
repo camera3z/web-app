@@ -37,6 +37,7 @@ if (configuredURL || configuredKey) {
   } catch { configurationError = 'Cấu hình Supabase chưa hợp lệ. Kiểm tra URL và key công khai rồi khởi động lại ứng dụng.'; }
 }
 const backend = supabase ? createBackend(supabase) : null;
+let authMode='signin', passwordMode=new URLSearchParams(location.search).has('reset');
 let account = null, cloudRestaurant = null, licenses = [], saving = false, bootId = 0;
 const publicSlug = new URLSearchParams(location.search).get('menu');
 let category='',search='',view=publicSlug!==null?'public':'menu',layout='grid';
@@ -81,10 +82,53 @@ function menuURL(){const u=new URL(location.href);u.search='';u.searchParams.set
 function qrHTML(){return `<div class="page-heading"><div><div class="eyebrow">KẾT NỐI VỚI KHÁCH HÀNG</div><h1>Một lần quét, cả thực đơn.</h1><p>Tải mã QR và đặt tại bàn hoặc quầy gọi món.</p></div></div><section class="qr-panel panel"><div class="qr-paper"><div class="eyebrow">CHÀO BẠN ĐẾN VỚI</div><h2>${escape(restaurant.name)}</h2><canvas id="qr-canvas"></canvas><h3>Quét mã để xem menu</h3><p>Chọn một món ngon, tận hưởng một chút an yên.</p></div><div><h2>Menu luôn trong tầm tay</h2><p>Mã QR dẫn đến menu dành cho khách hàng.</p><label class="field">Đường dẫn menu<input id="qr-url" readonly value="${escape(menuURL())}"></label><p class="muted">${backend ? (cloudRestaurant ? 'Đường dẫn riêng của quán được giữ cố định khi cập nhật món. Dùng tên miền công khai trước khi in mã QR.' : 'Hãy kích hoạt bản quyền và lưu thông tin quán trước khi tải mã QR.') : 'Bản demo lưu dữ liệu trên trình duyệt này. Kết nối Supabase để khách trên thiết bị khác xem đúng menu của quán.'}</p><button class="button primary" id="download-qr">${icon('download')}Tải mã QR PNG</button> <button class="button secondary" id="copy-link">${icon('copy')}Sao chép liên kết</button></div></section>`}
 async function drawQR(){await QRCode.toCanvas($('#qr-canvas'),$('#qr-url').value,{width:240,margin:2,color:{dark:'#1c3932',light:'#ffffff'}})}
 function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">DẤU ẤN RIÊNG CỦA BẠN</div><h1>Thông tin quán.</h1><p>Thông tin này sẽ xuất hiện trên menu dành cho khách.</p></div></div><form class="panel settings-form" id="settings-form"><label class="field">Tên quán<input name="name" value="${escape(restaurant.name)}" required maxlength="80"></label><label class="field">Lời chào<input name="tagline" value="${escape(restaurant.tagline)}" maxlength="180"></label><label class="field">Địa chỉ<input name="address" value="${escape(restaurant.address)}" maxlength="200"></label><button class="button primary">${icon('check')}Lưu thông tin</button></form>`}
+function authHTML() {
+  const mode=passwordMode&&account?'password':authMode;
+  const title={signin:'Đăng nhập',signup:'Tạo tài khoản',forgot:'Quên mật khẩu',link:'Đăng nhập bằng liên kết',password:'Đặt mật khẩu'}[mode];
+  const needsPassword=['signin','signup','password'].includes(mode);
+  const confirmPassword=['signup','password'].includes(mode);
+  return `<form id="auth-form" class="panel settings-form" data-mode="${mode}"><h2>${title}</h2><p class="muted">${!backend?'Chế độ demo. Cần kết nối Supabase để sử dụng tài khoản.':mode==='forgot'?'Nhận liên kết để đặt lại mật khẩu. Tài khoản dùng liên kết email trước đây cũng có thể đặt mật khẩu tại đây.':mode==='password'?'Đặt mật khẩu để lần sau đăng nhập trực tiếp bằng email.':mode==='signup'?'Tạo tài khoản cho cửa hàng của bạn. Sau khi đăng ký, xác nhận email rồi kích hoạt key sử dụng.':'Sử dụng tài khoản của bạn để quản lý thực đơn.'}</p><fieldset ${!backend?'disabled':''}>${mode!=='password'?'<label class="field">Email<input type="email" name="email" placeholder="Email của bạn" autocomplete="email" required maxlength="254"></label>':''}${needsPassword?`<label class="field">${mode==='password'?'Mật khẩu mới':'Mật khẩu'}<input type="password" name="password" autocomplete="${mode==='signin'?'current-password':'new-password'}" ${mode==='signin'?'':'minlength="8"'} maxlength="128" required></label>`:''}${confirmPassword?'<label class="field">Nhập lại mật khẩu<input type="password" name="confirm_password" autocomplete="new-password" minlength="8" maxlength="128" required></label><p class="muted">Dùng ít nhất 8 ký tự. Không dùng lại mật khẩu của dịch vụ khác.</p>':''}<div id="auth-message" role="status" aria-live="polite"></div><button class="button primary" id="auth-submit">${{signin:'Đăng nhập',signup:'Đăng ký tài khoản',forgot:'Gửi liên kết đặt lại mật khẩu',link:'Gửi liên kết đăng nhập',password:'Lưu mật khẩu'}[mode]}</button><div class="auth-links">${mode==='password'?'<button type="button" data-auth-mode="cancel">Quay lại tài khoản</button>':`<button type="button" data-auth-mode="${mode==='signin'?'signup':'signin'}">${mode==='signin'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>${mode==='signin'?'<button type="button" data-auth-mode="forgot">Quên mật khẩu?</button><button type="button" data-auth-mode="link">Nhận liên kết đăng nhập qua email</button>':''}`}</div></fieldset></form>`;
+}
 function licenseHTML(){
+  const heading=`<div class="page-heading"><div><div class="eyebrow">QRMenu ACCOUNT</div><h1>Không gian dành riêng cho quán.</h1><p>Tài khoản và bản quyền sử dụng của bạn.</p></div></div>`;
+  if(!account||passwordMode)return heading+authHTML();
   const active = hasActiveLicense(licenses);
   const expiry = licenses.filter(l => !l.revoked).sort((a,b)=>Date.parse(b.expires_at)-Date.parse(a.expires_at))[0]?.expires_at;
-  return `<div class="page-heading"><div><div class="eyebrow">QRMenu LICENSE</div><h1>Không gian dành riêng cho quán.</h1><p>Đăng nhập và quản lý bản quyền sử dụng của bạn.</p></div></div><form class="panel settings-form" id="license-form"><h2>${!backend?'Đang sử dụng bản demo':account?'Tài khoản của bạn':'Đăng nhập bằng email'}</h2><p class="muted">${!backend?'Chưa kết nối Supabase. Chế độ demo chỉ lưu dữ liệu trên trình duyệt.':account?`Đã đăng nhập: ${escape(account.email)}<br>${active?'Bản quyền đang hoạt động':'Chưa có bản quyền còn hiệu lực'}${expiry?` · Hạn sử dụng: ${escape(new Date(expiry).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok'}))} (UTC+7)`:''}`:'Nhập email để nhận liên kết đăng nhập. Mở liên kết trên thiết bị bạn muốn sử dụng.'}</p>${account?'<button type="button" class="button secondary" id="logout">Đăng xuất</button>':`<label class="field">Email<input type="email" name="email" placeholder="ban@quancaphe.vn" ${!backend?'disabled':''}></label><button type="button" class="button secondary" id="login" ${!backend?'disabled':''}>Gửi liên kết đăng nhập</button>`}<label class="field">Key kích hoạt<input name="key" placeholder="Nhập key được cấp" autocomplete="off" minlength="16" maxlength="256" ${!account?'disabled':''}></label><button class="button primary" ${!account?'disabled':''}>${icon('key-round')}Kích hoạt bản quyền</button></form>`;
+  return heading+`<form class="panel settings-form" id="license-form"><h2>Tài khoản của bạn</h2><p class="muted">Đã đăng nhập: ${escape(account.email)}<br>${active?'Bản quyền đang hoạt động':'Chưa có bản quyền còn hiệu lực'}${expiry?` · Hạn sử dụng: ${escape(new Date(expiry).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok'}))} (UTC+7)`:''}</p><button type="button" class="button secondary" id="logout">Đăng xuất</button> <button type="button" class="button secondary" data-auth-mode="password">Đặt / đổi mật khẩu</button><label class="field">Key kích hoạt<input name="key" placeholder="Nhập key được cấp" autocomplete="off" minlength="16" maxlength="256"></label><button class="button primary">${icon('key-round')}Kích hoạt bản quyền</button></form>`;
+}
+function bindAuth() {
+ document.querySelectorAll('[data-auth-mode]').forEach(button=>button.onclick=()=>{
+   const next=button.dataset.authMode;
+   passwordMode=next==='password';authMode=['password','cancel'].includes(next)?'signin':next;
+   render();
+ });
+ const form=$('#auth-form');if(!form)return;
+ form.onsubmit=async e=>{
+   e.preventDefault();if(!backend)return;
+   const mode=form.dataset.mode, f=new FormData(form), email=String(f.get('email')||'').trim(), password=String(f.get('password')||'');
+   const message=form.querySelector('#auth-message');
+   if(['signup','password'].includes(mode)&&password!==f.get('confirm_password')){message.textContent='Hai mật khẩu chưa khớp. Vui lòng nhập lại.';return}
+   const fieldset=form.querySelector('fieldset');fieldset.disabled=true;message.textContent='Đang xử lý…';
+   try{
+     if(mode==='signin'){await backend.signIn(email,password);await boot()}
+     else if(mode==='signup'){
+       const result=await backend.signUp(email,password);
+       if(result.session){await boot()}
+       else{message.textContent='Nếu email đủ điều kiện đăng ký, bạn sẽ nhận thư xác nhận. Kiểm tra hộp thư và thư rác, xác nhận email rồi quay lại đăng nhập.';form.elements.password.value='';form.elements.confirm_password.value=''}
+     }else if(mode==='forgot'){
+       await backend.resetPassword(email);message.textContent='Nếu email có tài khoản, bạn sẽ nhận liên kết đặt lại mật khẩu. Hãy mở thư mới nhất.';
+     }else if(mode==='link'){
+       await backend.login(email);message.textContent='Đã gửi liên kết. Kiểm tra hộp thư và thư rác.';
+     }else if(mode==='password'){
+       await backend.setPassword(password);passwordMode=false;authMode='signin';
+       const url=new URL(location.href);url.searchParams.delete('reset');history.replaceState(null,'',url);
+       render();toast('Đã lưu mật khẩu. Lần sau bạn có thể đăng nhập bằng email và mật khẩu.');
+     }
+   }catch(error){
+     const raw=error.message||'';
+     message.textContent= /Invalid login credentials/i.test(raw)?'Email hoặc mật khẩu không đúng.':/Email not confirmed/i.test(raw)?'Vui lòng xác nhận email trước khi đăng nhập.':/rate limit|too many/i.test(raw)?'Bạn đã thử quá nhiều lần. Vui lòng chờ rồi thử lại.':raw||'Không thực hiện được. Kiểm tra kết nối rồi thử lại.';
+   }finally{fieldset.disabled=false}
+ };
 }
 function renderPublic(){document.title=restaurant.name+' · Menu';$('#app').innerHTML=`<main class="public-menu"><a class="public-brand" href="/">${icon('utensils')} ${escape(restaurant.name)}</a><div class="public-hero"><span>CHÀO MỪNG BẠN ĐẾN VỚI CỬA HÀNG</span><h1>Khám phá thực đơn</h1><p>${escape(restaurant.tagline)}</p></div><div class="tabs public-tabs">${categories(true).map(c=>`<button data-category="${escape(c)}" class="${category===c?'selected':''}">${escape(c||'Tất cả')}</button>`).join('')}</div><div class="dish-grid">${filtered().map(d=>card(d,true)).join('')||'<p>Danh mục chưa có món.</p>'}</div><footer>${escape(restaurant.address)}<br>Menu bởi QRMenu · Giá đã hiển thị theo VNĐ</footer></main>`;document.querySelectorAll('[data-category]').forEach(el=>el.onclick=()=>{category=el.dataset.category;renderPublic()});createIcons({icons})}
 function bindCards(){
@@ -95,14 +139,7 @@ function bindCards(){
    if(await persist(restaurant,next)){render();toast('Đã cập nhật trạng thái món')}else{el.checked=!checked;el.disabled=false}
  });
 }
-function bind(){document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{view=el.dataset.nav;render()});document.querySelectorAll('[data-category]').forEach(el=>el.onclick=()=>{category=el.dataset.category;render()});bindCards();if($('#search'))$('#search').oninput=e=>{search=e.target.value;$('#dish-grid').innerHTML=filtered().map(d=>card(d)).join('')||'<div class="empty">Không tìm thấy món phù hợp.</div>';bindCards();createIcons({icons})};if($('#grid'))$('#grid').onclick=()=>{layout='grid';render()};if($('#list'))$('#list').onclick=()=>{layout='list';render()};if($('#add'))$('#add').onclick=()=>openDish();if($('#preview'))$('#preview').onclick=()=>{if(backend&&!cloudRestaurant)return toast('Hãy lưu thông tin quán để tạo menu online');window.open(menuURL(),'_blank','noopener')};if($('#banner-qr'))$('#banner-qr').onclick=()=>{view='qr';render()};$('#help').onclick=()=>toast(backend?'Cập nhật thông tin quán → thêm món → tải QR. Chỉ thay đổi lưu thành công mới được công khai.':'Thêm món → cập nhật thông tin quán → tải mã QR. Dữ liệu demo được lưu trên trình duyệt.');$('#notification').onclick=()=>toast('Bạn đã xem hết thông báo. Chúc quán một ngày thật vui!');if($('#settings-form'))$('#settings-form').onsubmit=async e=>{e.preventDefault();const next={...restaurant,...Object.fromEntries(new FormData(e.target))};if(await persist(next,dishes)){render();toast('Đã lưu thông tin quán')}};if($('#download-qr'))$('#download-qr').onclick=()=>{if(backend&&!cloudRestaurant)return toast('Hãy lưu thông tin quán trước khi tạo mã QR');const a=document.createElement('a');a.download='qrmenu.png';a.href=$('#qr-canvas').toDataURL();a.click()};if($('#copy-link'))$('#copy-link').onclick=async()=>{try{await navigator.clipboard.writeText($('#qr-url').value);toast('Đã sao chép liên kết')}catch{toast('Hãy chọn và sao chép đường dẫn bên trên')}};if($('#login'))$('#login').onclick=async e=>{
- const input=$('[name=email]');if(!input.reportValidity()||!input.value)return toast('Vui lòng nhập email hợp lệ');
- const button=e.currentTarget;button.disabled=true;
- try{await backend.login(input.value.trim());toast('Đã gửi liên kết. Kiểm tra hộp thư của bạn.')}
- catch(error){toast(error.message||'Không gửi được email. Vui lòng thử lại.')}
- finally{button.disabled=false}
-};
-if($('#logout'))$('#logout').onclick=async()=>{try{await backend.logout();await boot()}catch(error){toast(error.message)}};
+function bind(){bindAuth();document.querySelectorAll('[data-nav]').forEach(el=>el.onclick=()=>{view=el.dataset.nav;render()});document.querySelectorAll('[data-category]').forEach(el=>el.onclick=()=>{category=el.dataset.category;render()});bindCards();if($('#search'))$('#search').oninput=e=>{search=e.target.value;$('#dish-grid').innerHTML=filtered().map(d=>card(d)).join('')||'<div class="empty">Không tìm thấy món phù hợp.</div>';bindCards();createIcons({icons})};if($('#grid'))$('#grid').onclick=()=>{layout='grid';render()};if($('#list'))$('#list').onclick=()=>{layout='list';render()};if($('#add'))$('#add').onclick=()=>openDish();if($('#preview'))$('#preview').onclick=()=>{if(backend&&!cloudRestaurant)return toast('Hãy lưu thông tin quán để tạo menu online');window.open(menuURL(),'_blank','noopener')};if($('#banner-qr'))$('#banner-qr').onclick=()=>{view='qr';render()};$('#help').onclick=()=>toast(backend?'Cập nhật thông tin quán → thêm món → tải QR. Chỉ thay đổi lưu thành công mới được công khai.':'Thêm món → cập nhật thông tin quán → tải mã QR. Dữ liệu demo được lưu trên trình duyệt.');$('#notification').onclick=()=>toast('Bạn đã xem hết thông báo. Chúc quán một ngày thật vui!');if($('#settings-form'))$('#settings-form').onsubmit=async e=>{e.preventDefault();const next={...restaurant,...Object.fromEntries(new FormData(e.target))};if(await persist(next,dishes)){render();toast('Đã lưu thông tin quán')}};if($('#download-qr'))$('#download-qr').onclick=()=>{if(backend&&!cloudRestaurant)return toast('Hãy lưu thông tin quán trước khi tạo mã QR');const a=document.createElement('a');a.download='qrmenu.png';a.href=$('#qr-canvas').toDataURL();a.click()};if($('#copy-link'))$('#copy-link').onclick=async()=>{try{await navigator.clipboard.writeText($('#qr-url').value);toast('Đã sao chép liên kết')}catch{toast('Hãy chọn và sao chép đường dẫn bên trên')}};if($('#logout'))$('#logout').onclick=async()=>{try{passwordMode=false;authMode='signin';await backend.logout();await boot()}catch(error){toast(error.message)}};
 if($('#license-form'))$('#license-form').onsubmit=async e=>{
  e.preventDefault();if(!backend||!account)return;
  const key=new FormData(e.target).get('key')?.trim();if(!key)return toast('Vui lòng nhập key');
@@ -186,9 +223,15 @@ async function boot() {
    account=state.user;cloudRestaurant=state.restaurant;licenses=state.licenses;
    restaurant=cloudRestaurant?{name:cloudRestaurant.name,tagline:cloudRestaurant.tagline,address:cloudRestaurant.address,categories:cloudRestaurant.categories||[]}:{name:'Quán của bạn',tagline:'Chào mừng bạn đến với quán.',address:''};
    dishes=cloudRestaurant?.dishes??[];
-   if(!account)view='license';
+   if(!account||passwordMode)view='license';
    render();
  } catch(error){if(id===bootId)statusScreen('Không tải được dữ liệu',error.message||'Kiểm tra kết nối rồi thử lại.',true)}
 }
-if(supabase)supabase.auth.onAuthStateChange(sessionObserver(()=>boot()));
+if(supabase){
+ const observe=sessionObserver(()=>boot());
+ supabase.auth.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY')setTimeout(()=>{passwordMode=true;view='license';boot()},0);
+   else observe(event,session);
+ });
+}
 boot();
