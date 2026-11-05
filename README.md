@@ -78,3 +78,5 @@ Giá/tổng/thời gian lấy từ server, lưu snapshot tên/giá/số lượng
 RLS chỉ chủ quán đọc đơn, cập nhật trạng thái qua RPC kiểm tra chủ sở hữu + license + trạng thái hiện tại. RPC công khai cho phép tạo đơn, không đọc danh sách khách/quán khác. Giới hạn mỗi client UUID 5 đơn/phút/quán, 50 dòng và 500 phần/đơn; UUID trình duyệt không phải định danh chống bot đáng tin cậy. Nếu triển khai rộng cần bổ sung chống spam ở gateway/CAPTCHA; không có xác minh danh tính khách trong bản này. Đơn cũ vẫn giữ để quán tra cứu khi license hết hạn; tạo/cập nhật trạng thái yêu cầu license hiệu lực.
 
 Kiểm thử SQL dùng PostgreSQL WASM; kiểm thử trình duyệt dùng API giả lập gồm mất phản hồi sau khi server tạo đơn rồi gửi lại. Cần kiểm tra một đơn thực tế trên điện thoại và trang quản lý sau khi chạy migration/deploy.
+
+Giỏ chưa gửi chỉ giữ trong lần mở trang hiện tại: mở lại hoặc tải lại menu bắt đầu số lượng 0, không tự chọn từ bản nháp cũ. Chuyển danh mục trong cùng trang vẫn giữ lựa chọn. Nút Xóa giỏ bỏ toàn bộ lựa chọn và ghi chú. Riêng yêu cầu đã gửi nhưng chưa xác định kết quả vẫn được khôi phục/khóa chỉnh để gửi lại an toàn, và mã đơn đã gửi gần nhất vẫn được giữ.

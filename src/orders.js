@@ -11,20 +11,27 @@ export function pendingTotals(orders) {
 export function createOrderCart({backend,slug,getDishes,escape,money,toast}) {
  const storageKey='qrmenu-cart-'+slug;
  let state={quantities:{},note:'',attempt:null,receipt:null};
- try{const saved=JSON.parse(localStorage.getItem(storageKey));if(saved&&typeof saved.quantities==='object'&&saved.quantities)state={...state,...saved}}catch{}
+ try{
+   const saved=JSON.parse(localStorage.getItem(storageKey));
+   if(saved?.receipt)state.receipt=saved.receipt;
+   // Only restore an already-submitted request whose outcome is uncertain.
+   // A new menu visit must not silently select items from an older draft.
+   if(saved?.attempt&&typeof saved.quantities==='object'&&saved.quantities)state={...state,...saved};
+ }catch{}
  let clientId;try{clientId=localStorage.getItem('qrmenu-order-client')}catch{}
  if(!/^[0-9a-f-]{36}$/i.test(clientId||'')){clientId=crypto.randomUUID();try{localStorage.setItem('qrmenu-order-client',clientId)}catch{}}
  let busy=false;
- const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(state))}catch{}};
+ const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify({...state,quantities:state.attempt?state.quantities:{},note:state.attempt?state.note:''}))}catch{}};
  const lines=()=>Object.entries(state.quantities).filter(([,n])=>Number.isInteger(n)&&n>0).map(([id,quantity])=>({dish:getDishes().find(d=>d.id===id),id,quantity}));
  const total=()=>lines().reduce((n,l)=>n+(l.dish?.price||0)*l.quantity,0);
  const locked=()=>busy||Boolean(state.attempt);
  function mount(){
   const root=document.querySelector('#customer-cart');if(!root)return;
-  root.innerHTML=`<h2>Giỏ món của bạn</h2><p class="muted">Không cần số bàn. Sau khi gửi, đưa mã đơn cho nhân viên để đối chiếu. Thanh toán trực tiếp với quán.</p>${!backend?'<p class="muted">Đây là menu demo. Chỉ menu đã kết nối online mới gửi đơn được.</p>':''}${state.receipt?`<div class="order-receipt" role="status"><strong>Đã gửi yêu cầu · ${escape(state.receipt.code)}</strong><p>${escape(new Date(state.receipt.created_at).toLocaleString('vi-VN'))} · ${money(state.receipt.total)}</p><small>Đang chờ quán tiếp nhận. Lưu mã đơn để đối chiếu.</small></div>`:''}${lines().map(l=>`<div class="cart-line"><div><strong>${escape(l.dish?.name||'Món không còn trong menu')}</strong><small>${l.dish?money(l.dish.price):'Vui lòng bỏ món này'}</small></div><div class="quantity"><button data-quantity="${escape(l.id)}" data-delta="-1" aria-label="Giảm số lượng" ${locked()?'disabled':''}>−</button><span>${l.quantity}</span><button data-quantity="${escape(l.id)}" data-delta="1" aria-label="Tăng số lượng" ${locked()?'disabled':''}>+</button></div><strong>${money((l.dish?.price||0)*l.quantity)}</strong></div>`).join('')||'<p class="muted">Chưa chọn món. Nhấn + trên món bạn muốn chọn.</p>'}<label class="field">Ghi chú cho quán<textarea id="order-note" maxlength="500" rows="2" ${locked()?'disabled':''}>${escape(state.note)}</textarea></label><div class="cart-footer"><strong>Tổng cộng: ${money(total())}</strong><button class="button primary" id="send-order" ${busy||!backend||!lines().length?'disabled':''}>${busy?'Đang gửi…':state.attempt?'Thử lại yêu cầu cũ':'Gửi đơn'}</button></div>${state.attempt&&!busy?'<p class="muted" role="alert">Chưa xác nhận được kết quả. Thử lại cùng yêu cầu để tránh tạo đơn trùng; giỏ món được giữ nguyên.</p>':''}`;
+  root.innerHTML=`<div class="cart-heading"><h2>Giỏ món của bạn</h2><button type="button" class="button secondary" id="clear-cart" ${locked()||!lines().length?'disabled':''}>Xóa giỏ</button></div><p class="muted">Không cần số bàn. Sau khi gửi, đưa mã đơn cho nhân viên để đối chiếu. Thanh toán trực tiếp với quán.</p>${!backend?'<p class="muted">Đây là menu demo. Chỉ menu đã kết nối online mới gửi đơn được.</p>':''}${state.receipt?`<div class="order-receipt" role="status"><strong>Đã gửi yêu cầu · ${escape(state.receipt.code)}</strong><p>${escape(new Date(state.receipt.created_at).toLocaleString('vi-VN'))} · ${money(state.receipt.total)}</p><small>Đang chờ quán tiếp nhận. Lưu mã đơn để đối chiếu.</small></div>`:''}${lines().map(l=>`<div class="cart-line"><div><strong>${escape(l.dish?.name||'Món không còn trong menu')}</strong><small>${l.dish?money(l.dish.price):'Vui lòng bỏ món này'}</small></div><div class="quantity"><button data-quantity="${escape(l.id)}" data-delta="-1" aria-label="Giảm số lượng" ${locked()?'disabled':''}>−</button><span>${l.quantity}</span><button data-quantity="${escape(l.id)}" data-delta="1" aria-label="Tăng số lượng" ${locked()?'disabled':''}>+</button></div><strong>${money((l.dish?.price||0)*l.quantity)}</strong></div>`).join('')||'<p class="muted">Chưa chọn món. Nhấn + trên món bạn muốn chọn.</p>'}<label class="field">Ghi chú cho quán<textarea id="order-note" maxlength="500" rows="2" ${locked()?'disabled':''}>${escape(state.note)}</textarea></label><div class="cart-footer"><strong>Tổng cộng: ${money(total())}</strong><button class="button primary" id="send-order" ${busy||!backend||!lines().length?'disabled':''}>${busy?'Đang gửi…':state.attempt?'Thử lại yêu cầu cũ':'Gửi đơn'}</button></div>${state.attempt&&!busy?'<p class="muted" role="alert">Chưa xác nhận được kết quả. Thử lại cùng yêu cầu để tránh tạo đơn trùng; giỏ món được giữ nguyên.</p>':''}`;
   root.querySelectorAll('[data-quantity]').forEach(b=>b.onclick=()=>change(b.dataset.quantity,Number(b.dataset.delta)));
   root.querySelector('#order-note').oninput=e=>{state.note=e.target.value;persist()};
   root.querySelector('#send-order').onclick=send;
+  root.querySelector('#clear-cart').onclick=()=>{if(locked())return;state.quantities={};state.note='';persist();mount()};
   document.querySelectorAll('[data-cart-count]').forEach(el=>{el.textContent=state.quantities[el.dataset.cartCount]||0});
   document.querySelectorAll('[data-cart-change]').forEach(b=>{
     const id=b.dataset.cartChange,delta=Number(b.dataset.delta),quantity=state.quantities[id]||0;
