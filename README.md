@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 29 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 38 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -42,7 +42,7 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 - RLS chỉ cho chủ quán đọc dữ liệu của mình. Trình duyệt không có quyền ghi trực tiếp bảng; RPC kiểm tra tài khoản, bản quyền và dữ liệu trên mọi lần ghi.
 - Menu công khai đọc qua RPC theo slug ngẫu nhiên cố định, không lộ owner ID, email hoặc hash key. Menu ẩn khi không có bản quyền hiệu lực. Sau khi chỉnh sửa, khách tải lại menu để nhận dữ liệu mới; chưa có realtime.
 - Mỗi key gắn với tài khoản kích hoạt đầu tiên; nhiều key có thể gia hạn quyền cho cùng tài khoản. CLI quản trị tạo/gia hạn/thu hồi key qua service role, không có quyền quản trị trong frontend.
-- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key, đặt món hoặc quản lý bàn.
+- Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key hoặc quản lý bàn.
 - Dữ liệu demo không tự nhập sang tài khoản online, tránh đưa nhầm dữ liệu trình duyệt vào quán.
 
 **Trạng thái:** đã triển khai mã và kiểm tra SQL + giao diện giả lập. Chưa kết nối Supabase thật, kiểm tra gửi email thực tế hay triển khai tên miền. Cần hoàn thành các bước trong hướng dẫn và kiểm tra trên hai tài khoản/thiết bị trước khi vận hành thương mại.
@@ -66,3 +66,15 @@ Trang Tài khoản & bản quyền có đăng ký email/mật khẩu, đăng nh�
 ## Giới hạn đăng ký/email
 
 Giao diện phân biệt `over_email_send_rate_limit` với HTTP 429 chung; không coi mọi lỗi 429 là lỗi người dùng. Gửi email thành công hoặc gặp giới hạn sẽ khóa gửi lại với đếm ngược; mặc định chờ cục bộ 60 giây nếu SDK không cung cấp thời gian chờ. Đây không phải thời điểm chắc chắn hạn mức server phục hồi. Các form đăng ký/khôi phục/liên kết email dùng chung khoảng chờ, đăng nhập mật khẩu không bị khóa bởi giới hạn email. Chỉ lưu deadline trong trình duyệt, không lưu email/mật khẩu. Cần cấu hình custom SMTP trong Supabase khi dùng với khách hàng thật; sửa frontend không gỡ hạn mức hoặc cấu hình nhà cung cấp email.
+
+## Gọi món bằng QR chung
+
+Chạy thêm `supabase/orders.sql` sau schema.sql rồi cập nhật frontend. Menu khách có Thêm món, tăng/giảm số lượng (1–99/món), ghi chú và Gửi đơn. Không cần tài khoản khách hoặc số bàn; một QR chung cho quán. Quán đối chiếu mã đơn với khách và tự giao món/thanh toán ngoài ứng dụng.
+
+Trang Đơn gọi món có hàng chờ cũ nhất trước và lịch sử mới nhất trước; tối đa 200 đơn mỗi danh sách. Tổng hợp món tính trong danh sách đang chờ (Mới/Đã nhận/Đang chuẩn bị), không phải thống kê toàn bộ lịch sử. Tự tải lại mỗi 10 giây khi trang đang mở và tab hiển thị; không có thông báo khi đóng trang hoặc push notification.
+
+Giá/tổng/thời gian lấy từ server, lưu snapshot tên/giá/số lượng; giá đổi hoặc món hết sẽ yêu cầu kiểm tra lại menu. Dùng request UUID để gửi lại cùng đơn an toàn khi mất mạng; giữ yêu cầu chưa rõ kết quả trong localStorage và khóa chỉnh giỏ đến khi thử lại. Các lỗi server rõ ràng cho sửa giỏ. Receipt lưu mã đơn gần nhất trên trình duyệt; chưa có trang theo dõi trạng thái trực tiếp dành cho khách. Không phải xác nhận quán đã nhận/phục vụ hay thanh toán thành công.
+
+RLS chỉ chủ quán đọc đơn, cập nhật trạng thái qua RPC kiểm tra chủ sở hữu + license + trạng thái hiện tại. RPC công khai cho phép tạo đơn, không đọc danh sách khách/quán khác. Giới hạn mỗi client UUID 5 đơn/phút/quán, 50 dòng và 500 phần/đơn; UUID trình duyệt không phải định danh chống bot đáng tin cậy. Nếu triển khai rộng cần bổ sung chống spam ở gateway/CAPTCHA; không có xác minh danh tính khách trong bản này. Đơn cũ vẫn giữ để quán tra cứu khi license hết hạn; tạo/cập nhật trạng thái yêu cầu license hiệu lực.
+
+Kiểm thử SQL dùng PostgreSQL WASM; kiểm thử trình duyệt dùng API giả lập gồm mất phản hồi sau khi server tạo đơn rồi gửi lại. Cần kiểm tra một đơn thực tế trên điện thoại và trang quản lý sau khi chạy migration/deploy.

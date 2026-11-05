@@ -19,7 +19,7 @@ const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.test'
 const dish={id:'1',name:'Món online',category:'Cà phê',price:42000,description:'Từ server',image:'/images/coffee.svg',available:true,best:false};
 let cloud={id:'restaurant-1',slug:'quan-test',name:'Quán Online',tagline:'Xin chào',address:'Hà Nội',dishes:[dish],version:1};
 let active=true,failSave=false,offline=false,restaurantReads=0,signupRequests=0;
-const errors=[];
+const errors=[];const orders=[];let dropOrderResponse=true;
 try {
  const demo=await start(5186,false);const online=await start(5187,true);
  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
@@ -44,6 +44,18 @@ try {
   }
   if(path==='/auth/v1/otp')return json({});
   if(path==='/auth/v1/logout')return json({});
+  if(path==='/rest/v1/rpc/place_menu_order'){
+   const b=route.request().postDataJSON();let existing=orders.find(o=>o.request_token===b.request_token);
+   if(!existing){existing={id:'33333333-3333-4333-8333-333333333333',request_token:b.request_token,order_code:'Q-TEST123',items:b.order_items.map(i=>{const d=cloud.dishes.find(d=>d.id===i.id);return{id:d.id,name:d.name,price:d.price,quantity:i.quantity,subtotal:d.price*i.quantity}}),total:b.expected_total,note:b.order_note,status:'new',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};orders.push(existing)}
+   if(dropOrderResponse){dropOrderResponse=false;return route.abort()}
+   return json({code:existing.order_code,total:existing.total,created_at:existing.created_at,status:existing.status});
+  }
+  if(path==='/rest/v1/menu_orders'){
+   const filter=new URL(route.request().url()).searchParams.get('status');return json(orders.filter(o=>filter.includes(o.status)));
+  }
+  if(path==='/rest/v1/rpc/set_menu_order_status'){
+   const b=route.request().postDataJSON();const o=orders.find(o=>o.id===b.order_id);assert.equal(o.status,b.expected_status);o.status=b.next_status;return json({status:o.status});
+  }
   if(path==='/rest/v1/licenses')return json(active?[{id:'license-1',expires_at:'2099-01-01T00:00:00Z',revoked:false}]:[]);
   if(path==='/rest/v1/restaurants'){restaurantReads++;return json(cloud);}
   if(path==='/rest/v1/rpc/save_restaurant'){
@@ -82,6 +94,10 @@ try {
  console.log('PASS online UI (mock API): signed-out login, server data, save, failed-write rollback');
  await page.locator('[data-nav=qr]').click();assert.equal(await page.locator('#qr-url').inputValue(),online+'/?menu=quan-test');await page.waitForFunction(()=>document.querySelector('#qr-canvas')?.width>0);
  const guestContext=await browser.newContext();await guestContext.route('https://qrmenu-test.supabase.co/**',mockRoute);const guest=await guestContext.newPage();guest.on('pageerror',e=>errors.push(e.message));await guest.goto(online+'/?menu=quan-test');await guest.getByRole('heading',{name:'Món online',exact:true}).waitFor();assert.equal(await guest.locator('[data-edit]').count(),0);assert.equal(await guest.locator('.dish-bottom strong').textContent(),'57.000đ');await guest.setViewportSize({width:375,height:812});assert.equal(await guest.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await guest.locator('[data-cart-add="1"]').click();await guest.locator('[data-cart-add="1"]').click();await guest.locator('#order-note').fill('Không lấy đá');await guest.locator('#send-order').click();await guest.getByText(/Chưa xác nhận được kết quả. Thử lại cùng yêu cầu/).waitFor();assert.equal(orders.length,1);assert.equal(orders[0].items[0].quantity,2);assert.equal(orders[0].total,114000);
+ await guest.locator('#send-order').click();await guest.getByText(/Đã gửi yêu cầu · Q-TEST123/).waitFor();assert.equal(orders.length,1);await guest.reload();await guest.getByText(/Đã gửi yêu cầu · Q-TEST123/).waitFor();
+ await page.locator('[data-nav=orders]').click();await page.getByRole('heading',{name:'Q-TEST123',exact:true}).waitFor();await page.getByRole('button',{name:'Nhận đơn',exact:true}).click();await page.getByRole('button',{name:'Bắt đầu chuẩn bị',exact:true}).click();await page.getByRole('button',{name:'Đã phục vụ',exact:true}).click();await page.getByText('Chưa có đơn trong danh sách này.').waitFor();await page.locator('#history-orders').click();await page.getByRole('heading',{name:'Q-TEST123',exact:true}).waitFor();assert.equal(orders[0].status,'served');
+ console.log('PASS orders: public cart, quantities, note, ambiguous retry deduplication, persisted receipt, owner queue, status processing/history');
  await guest.goto(online+'/?menu=unknown');await guest.getByRole('heading',{name:'Menu chưa sẵn sàng'}).waitFor();assert.equal(await guest.locator('.dish').count(),0);
  active=false;await page.goto(online);await page.locator('[data-nav=menu]').click();await page.locator('#add').click();await page.getByRole('heading',{name:'Tài khoản của bạn',exact:true}).waitFor();assert.equal(await page.locator('#dish-form').count(),0);
  await page.locator('[name=key]').fill('QRM-test-key-0123456789');await page.locator('#license-form').getByRole('button',{name:'Kích hoạt bản quyền',exact:true}).click();await page.getByText(/Bản quyền đang hoạt động · Hạn/).waitFor();

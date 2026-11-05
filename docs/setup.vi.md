@@ -161,3 +161,14 @@ Trong Authentication Logs, kiểm tra error code: `over_email_send_rate_limit` l
 Để dùng custom SMTP: chọn nhà cung cấp email giao dịch, xác minh tên miền gửi bằng các bản ghi DNS mà nhà cung cấp cấp, rồi vào Supabase Authentication → Email / SMTP Settings để bật custom SMTP. Nhập Sender email đã xác minh, Sender name QRMenu, Host, Port, Username và Password theo tài liệu nhà cung cấp. Nhập mật khẩu SMTP/API key trực tiếp trong Supabase, không đưa vào VITE_, GitHub hoặc chat. Lưu cấu hình, kiểm tra hạn mức Authentication → Rate Limits phù hợp gói dịch vụ và năng lực SMTP; không tắt bảo vệ tần suất để chữa lỗi.
 
 Kiểm tra một email đăng ký và một email khôi phục thật sau khi xác minh sender và lưu cấu hình. Nếu chưa có nhà cung cấp SMTP thì đây là bước chưa hoàn tất; không coi việc cập nhật frontend là đã sửa xong dịch vụ email.
+
+## Bật gọi món từ menu khách
+
+1. Supabase SQL Editor: chạy toàn bộ `supabase/orders.sql` trong query riêng, sau khi đã cài schema.sql. Script có thể chạy lại, không xóa dữ liệu.
+2. Cập nhật mã từ GitHub, build rồi triển khai assets/index.html mới lên VPS theo quy trình có sao lưu. Không cần đổi QR hoặc số bàn.
+3. Mở menu khách bằng điện thoại, thêm món/số lượng và ghi chú; nhấn Gửi đơn một lần. Ghi lại mã đơn.
+4. Mở Đơn gọi món ở tài khoản chủ quán; làm mới hoặc chờ tối đa khoảng 10 giây khi tab đang mở. Đối chiếu mã/tổng/món; xử lý Nhận đơn → Bắt đầu chuẩn bị → Đã phục vụ.
+5. Kiểm tra Lịch sử và thử đơn Từ chối. Tổng món đang chờ phải giảm sau khi hoàn tất/từ chối.
+6. Khách chưa xác định được kết quả do mất mạng: dùng nút Thử lại yêu cầu cũ, không xóa dữ liệu trình duyệt để gửi một đơn mới. Server trả lại cùng mã nếu đã nhận.
+
+Một QR chung, không lưu số bàn hoặc yêu cầu khách cung cấp số điện thoại. Quán tổ chức giao món bằng mã đơn và tự thu tiền. Lưu ý hàng chờ tự làm mới khi mở trang, chưa có push/âm báo; tối đa 200 đơn được hiển thị mỗi danh sách.
