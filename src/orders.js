@@ -69,25 +69,39 @@ export function createOrderCart({backend,slug,getDishes,escape,money,toast}) {
  return {mount};
 }
 export function mountOrderManager({backend,restaurantId,escape,money,toast}) {
- const root=document.querySelector('#orders-content');let stopped=false,loading=false,history=false,rows=[];
- function draw(error=''){
+ const root=document.querySelector('#orders-content');
+ let stopped=false,loading=false,mutating=false,history=false,rows=[],pending=[],filter='all',search='',lastUpdate='',lastError='';
+ const stamp=date=>new Date(date).toLocaleString('vi-VN');
+ function draw(){
   if(stopped||!root.isConnected)return;
-  root.innerHTML=`<div class="order-controls"><button class="button ${history?'secondary':'primary'}" id="pending-orders">Đang chờ xử lý</button><button class="button ${history?'primary':'secondary'}" id="history-orders">Lịch sử</button><button class="button secondary" id="refresh-orders">Làm mới</button></div><p class="muted">${history?'200 đơn hoàn tất gần nhất, mới nhất trước.':'Tối đa 200 đơn đang chờ, đơn cũ nhất trước. Tự làm mới mỗi 10 giây khi đang mở trang.'} ${error?escape(error):''}</p>${!history&&rows.length?`<section class="panel"><h2>Tổng món đang chờ</h2><div class="pending-totals">${pendingTotals(rows).map(i=>`<span>${escape(i.name)} <b>× ${i.quantity}</b></span>`).join('')}</div></section>`:''}${rows.map(o=>`<article class="panel order-card"><div class="order-card-title"><h2>${escape(o.order_code)}</h2><span>${ORDER_LABELS[o.status]}</span></div><p class="muted">${escape(new Date(o.created_at).toLocaleString('vi-VN'))}</p>${o.items.map(i=>`<div class="cart-line"><span>${escape(i.name)} <b>× ${i.quantity}</b></span><strong>${money(i.subtotal)}</strong></div>`).join('')}<p>${escape(o.note||'Không có ghi chú')}</p><div class="cart-footer"><strong>${money(o.total)}</strong><div>${(o.status==='new'?[['accepted','Nhận đơn']]:o.status==='accepted'?[['preparing','Bắt đầu chuẩn bị']]:o.status==='preparing'?[['served','Đã phục vụ']]:[]).map(([status,label])=>`<button class="button primary" data-order="${o.id}" data-status="${status}">${label}</button>`).join('')} ${['new','accepted','preparing'].includes(o.status)?`<button class="button secondary" data-order="${o.id}" data-status="rejected">Từ chối</button>`:''}</div></div></article>`).join('')||'<p class="empty">Chưa có đơn trong danh sách này.</p>'}`;
-  root.querySelector('#pending-orders').onclick=()=>{history=false;rows=[];load()};root.querySelector('#history-orders').onclick=()=>{history=true;rows=[];load()};root.querySelector('#refresh-orders').onclick=()=>load();
+  const focus=root.querySelector('#order-search')===document.activeElement;
+  const caret=root.querySelector('#order-search')?.selectionStart;
+  const shown=rows.filter(o=>(filter==='all'||o.status===filter)&&[o.order_code,o.note,...o.items.map(i=>i.name)].join(' ').toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')));
+  root.innerHTML=`<section class="order-kpis" aria-label="Tình trạng đơn đang chờ">${[['Đang chờ xử lý',pending.length,'all'],['Đơn mới',pending.filter(o=>o.status==='new').length,'new'],['Đã tiếp nhận',pending.filter(o=>o.status==='accepted').length,'accepted'],['Đang chuẩn bị',pending.filter(o=>o.status==='preparing').length,'preparing']].map(([label,count,status])=>`<button data-kpi="${status}" class="order-kpi ${!history&&filter===status?'selected':''}"><span>${label}</span><strong>${count}</strong></button>`).join('')}</section><section class="order-workbench"><div class="order-toolbar"><div class="order-controls"><button class="button ${history?'secondary':'primary'}" id="pending-orders">Đang xử lý</button><button class="button ${history?'primary':'secondary'}" id="history-orders">Lịch sử</button></div><label class="order-search-label">Tìm đơn<input id="order-search" type="search" placeholder="Mã đơn, món, ghi chú…" value="${escape(search)}"></label><button class="button secondary" id="refresh-orders" ${loading||mutating?'disabled':''}>${loading?'Đang tải…':'Làm mới'}</button></div><div class="order-filterbar">${(history?['all','served','rejected']:['all','new','accepted','preparing']).map(status=>`<button data-order-filter="${status}" class="${filter===status?'active':''}">${status==='all'?'Tất cả':ORDER_LABELS[status]}</button>`).join('')}<span>${shown.length} / ${rows.length} đơn</span></div><div class="order-sync ${lastError?'sync-error':''}" role="status">${lastError?escape(lastError):lastUpdate?'Cập nhật '+escape(lastUpdate)+' · Tự làm mới mỗi 10 giây khi đang mở trang.':'Đang tải dữ liệu đơn…'}</div><div class="order-table-scroll"><table class="orders-table"><thead><tr><th>Đơn / Thời gian</th><th>Món đã đặt</th><th>SL</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${shown.map(o=>`<tr><td data-label="Đơn"><strong class="order-code">${escape(o.order_code)}</strong><time>${escape(stamp(o.created_at))}</time><small>Cập nhật: ${escape(stamp(o.updated_at))}</small></td><td data-label="Món">${o.items.map(i=>`<div class="order-item"><span>${escape(i.name)} <b>× ${i.quantity}</b></span><small>${money(i.price)} / phần · ${money(i.subtotal)}</small></div>`).join('')}${o.note?`<p class="order-note"><b>Ghi chú:</b> ${escape(o.note)}</p>`:''}</td><td data-label="Số lượng">${o.items.reduce((n,i)=>n+i.quantity,0)}</td><td data-label="Tổng tiền"><strong>${money(o.total)}</strong></td><td data-label="Trạng thái"><span class="order-status status-${o.status}">${ORDER_LABELS[o.status]}</span></td><td data-label="Thao tác"><div class="order-actions">${(o.status==='new'?[['accepted','Nhận đơn']]:o.status==='accepted'?[['preparing','Bắt đầu chuẩn bị']]:o.status==='preparing'?[['served','Đã phục vụ']]:[]).map(([status,label])=>`<button class="button primary" data-order="${o.id}" data-status="${status}" ${mutating||loading?'disabled':''}>${label}</button>`).join('')}${['new','accepted','preparing'].includes(o.status)?`<button class="button secondary" data-order="${o.id}" data-status="rejected" ${mutating||loading?'disabled':''}>Từ chối</button>`:'<span class="muted">Đã kết thúc</span>'}</div></td></tr>`).join('')||`<tr><td colspan="6" class="empty">${loading&&!lastUpdate?'Đang tải đơn…':'Chưa có đơn trong danh sách này.'}</td></tr>`}</tbody></table></div><div class="order-list-note">${history?'200 đơn hoàn tất gần nhất, mới nhất trước.':'Tối đa 200 đơn đang chờ, đơn cũ nhất trước. Các số tổng hợp tính trong danh sách này.'}</div></section>${!history?`<section class="order-prep"><h2>Tổng món cần chuẩn bị</h2><div class="pending-totals">${pendingTotals(shown).map(i=>`<span>${escape(i.name)} <b>× ${i.quantity}</b></span>`).join('')||'<span>Không có món trong bộ lọc hiện tại.</span>'}</div></section>`:''}`;
+  const switchList=value=>{if(mutating)return;history=value;filter='all';rows=[];draw();load()};
+  root.querySelector('#pending-orders').onclick=()=>switchList(false);
+  root.querySelector('#history-orders').onclick=()=>switchList(true);
+  root.querySelector('#refresh-orders').onclick=()=>load();
+  root.querySelectorAll('[data-order-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.orderFilter;draw()});
+  root.querySelectorAll('[data-kpi]').forEach(b=>b.onclick=()=>{if(mutating)return;const wasHistory=history;history=false;filter=b.dataset.kpi;if(wasHistory){rows=pending;draw();load()}else draw()});
+  root.querySelector('#order-search').oninput=e=>{search=e.target.value;draw()};
+  if(focus){const input=root.querySelector('#order-search');input.focus({preventScroll:true});if(caret!==null&&caret!==undefined)try{input.setSelectionRange(caret,caret)}catch{}}
   root.querySelectorAll('[data-order]').forEach(b=>b.onclick=async()=>{
-   if(loading)return;
+   if(loading||mutating)return;
    if(b.dataset.status==='rejected'&&!confirm('Từ chối đơn này?'))return;
-   const o=rows.find(o=>o.id===b.dataset.order);loading=true;b.disabled=true;
-   try{await backend.setOrderStatus(o.id,o.status,b.dataset.status)}catch(error){toast(error.message)}finally{loading=false;await load()}
+   const o=rows.find(o=>o.id===b.dataset.order);mutating=true;draw();
+   try{await withLoadTimeout(backend.setOrderStatus(o.id,o.status,b.dataset.status))}catch(error){toast(error.message)}finally{mutating=false;await load()}
   });
  }
  async function load(){
-  if(stopped||loading)return;loading=true;
-  const requestedHistory=history;
-  try{const result=await withLoadTimeout(backend.orders(restaurantId,requestedHistory));if(requestedHistory===history){rows=result;draw()}}
-  catch(error){draw('Không cập nhật được: '+error.message)}finally{loading=false;if(!stopped&&requestedHistory!==history)load()}
+  if(stopped||loading||mutating)return;loading=true;draw();const requestedHistory=history;
+  try{
+   const results=await withLoadTimeout(Promise.all([backend.orders(restaurantId,false),...(requestedHistory?[backend.orders(restaurantId,true)]:[])]));
+   if(requestedHistory===history){pending=results[0];rows=requestedHistory?results[1]:pending;lastUpdate=new Date().toLocaleTimeString('vi-VN');lastError=''}
+  }catch(error){lastError='Không cập nhật được dữ liệu. '+error.message}
+  finally{loading=false;draw();if(!stopped&&requestedHistory!==history)load()}
  }
- root.textContent='Đang tải đơn…';load();
+ draw();load();
  const timer=setInterval(()=>{if(document.visibilityState==='visible')load()},10000);
  return ()=>{stopped=true;clearInterval(timer)};
 }
