@@ -1,0 +1,27 @@
+{
+  "name": "qrmenu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "license": "node --env-file-if-exists=.env.admin scripts/license.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "lucide": "^0.468.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "playwright": "^1.64.1",
+    "vite": "^6.4.1"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  }
+}
