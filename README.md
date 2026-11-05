@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 21 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 22 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -50,3 +50,7 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ## Ảnh món ăn
 
 Chạy `supabase/storage.sql` trong Supabase SQL Editor trước khi dùng upload. Chọn ảnh từ thiết bị trong form món: JPG/PNG/WebP, tối đa 5 MB; ảnh được chuyển WebP, cạnh dài tối đa 1600px. Ảnh chỉ tải lên khi Lưu món. Storage giới hạn MIME/size và kiểm tra tài khoản + bản quyền còn hiệu lực trên insert/delete. Mỗi chủ quán chỉ ghi trong thư mục UID của mình, không ghi đè ảnh cũ. Bucket `menu-images` công khai để khách xem menu; ảnh vẫn truy cập được bằng URL kể cả khi bản quyền hết hạn. Không lưu tài liệu riêng tư vào bucket này. Ảnh cũ/ảnh tải thành công nhưng lưu menu thất bại được giữ lại để không vô tình xóa ảnh đang sử dụng; chưa có dọn ảnh mồ côi tự động. Demo lưu ảnh trong localStorage, có thể báo lỗi khi hết dung lượng.
+
+## Danh mục tùy chỉnh
+
+Chủ quán nhập tên mới hoặc chọn gợi ý đã dùng trong ô Danh mục (1–80 ký tự). Danh mục lưu theo từng quán, được giữ kể cả khi xóa món cuối cùng. Không phân biệt chữ hoa/thường khi chọn lại tên trên giao diện. Menu khách chỉ hiện các danh mục có món; trang quản lý giữ cả các nhóm đã dùng. Bản nâng cấp cần chạy `supabase/categories.sql` trước khi cập nhật frontend; script giữ nguyên món và bản quyền, chuyển các nhóm hiện tại vào danh sách riêng của quán. Hệ thống hỗ trợ thực đơn quán ăn, nhà hàng và đồ uống; dữ liệu demo cà phê chỉ là ví dụ.

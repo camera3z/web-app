@@ -15,7 +15,7 @@ export function createBackend(client) {
       const user = await this.user();
       if (!user) return { user: null, restaurant: null, licenses: [] };
       const [restaurant, licenses] = await Promise.all([
-        client.from('restaurants').select('id,slug,name,tagline,address,dishes,version').eq('owner_id', user.id).maybeSingle(),
+        client.from('restaurants').select('id,slug,name,tagline,address,dishes,categories,version').eq('owner_id', user.id).maybeSingle(),
         client.from('licenses').select('id,expires_at,revoked').eq('user_id', user.id),
       ]);
       return { user, restaurant: checked(restaurant), licenses: checked(licenses) };

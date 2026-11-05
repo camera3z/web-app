@@ -83,10 +83,21 @@ test('PostgreSQL: tenant isolation, licenses, validation and public menu',async 
     for(const bad of [
       {...dish,price:-1},{...dish,price:0.1},{...dish,price:'35000'},
       {...dish,image:'javascript:alert(1)'},{...dish,name:''},{...dish,available:null},
-      {...dish,category:'invalid'}, {...dish,id:null},
+      {...dish,category:'   '}, {...dish,category:'a'.repeat(81)}, {...dish,id:null},
     ]) await assert.rejects(()=>save([bad],2),/không hợp lệ/);
     await assert.rejects(()=>save([dish,dish],2),/bị trùng/);
     await assert.rejects(()=>save(Array.from({length:501},()=>dish),2),/500/);
+  });
+  await t.test('custom categories persist after their last dish is removed',async()=>{
+    await db.exec('reset role');
+    const migration=await readFile(new URL('../supabase/categories.sql',import.meta.url),'utf8');
+    await db.exec(migration);await db.exec(migration);
+    await role(A);
+    const custom=(await save([{...dish,category:'Món chính'}],2)).rows[0].menu;
+    assert.ok(custom.categories.includes('Món chính'));
+    const empty=(await save([],3)).rows[0].menu;
+    assert.ok(empty.categories.includes('Món chính'));
+    await save([{...dish,price:49000}],4);
   });
   await t.test('second licensed account gets separate restaurant',async()=>{
     await db.exec('reset role');

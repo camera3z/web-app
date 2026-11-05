@@ -141,3 +141,7 @@ Các bài kiểm tra tự động dùng PostgreSQL WASM và API giả lập; kh�
 | Không lưu được dù đã đăng nhập | Kiểm tra key còn hiệu lực, kết nối mạng, schema và thông báo lỗi cụ thể. |
 | Xung đột dữ liệu | Tải lại để lấy phiên bản mới rồi nhập lại thay đổi; không tự động ghi đè. |
 | Khách không thấy menu | Kiểm tra đúng tên miền, slug, quán đã được lưu, và còn bản quyền hiệu lực. |
+
+## Nâng cấp danh mục tự nhập
+
+Với dự án đã cài đặt, chạy `supabase/categories.sql` trong SQL Editor trước khi cập nhật frontend. Script chỉ thêm danh sách danh mục riêng cho từng quán và cập nhật hàm lưu thực đơn; không xóa món, quán hoặc bản quyền. Bản cài mới dùng schema.sql đã có sẵn tính năng này. Ô Danh mục cho phép gõ mới hoặc chọn gợi ý đã lưu; danh mục mới được lưu khi Lưu món thành công.
