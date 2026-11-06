@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 55 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 57 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -106,3 +106,9 @@ Chạy `supabase/revenue.sql`, cập nhật frontend và mở Thống kê. Chọ
 Múi giờ báo cáo cố định Asia/Ho_Chi_Minh (UTC+7). Giá trị hoàn tất tính status=served theo completed_at, không theo lúc đặt đơn; tiền mặt tính payment_status=paid, payment_method=cash theo paid_at, kể cả đơn chưa phục vụ. Hai chỉ tiêu không được cộng hoặc xem là cùng một số. Hiện luồng phục vụ không bắt buộc xác nhận thanh toán, nên giá trị hoàn tất không khẳng định đã thu tiền. Không tính đơn mới/đang chuẩn bị/từ chối vào tổng hoàn tất. Chưa có chi phí, lợi nhuận, giảm giá hoặc hoàn tiền.
 
 Migration ghi nhận completed_at bằng trigger cho lần chuyển sang served. Đơn cũ đã served nhưng không có thời điểm hoàn tất sẽ dùng updated_at làm mốc gần đúng, không thể tái tạo chính xác lịch sử cũ. Không tự gán thanh toán cho đơn cũ. Đọc báo cáo vẫn cho chủ quán xem dữ liệu lịch sử khi license hết hạn, không cho truy cập quán khác. Kiểm thử gồm ranh giới nửa đêm UTC+7, tháng nhuận, hơn 200 đơn và phân quyền.
+
+## Chuông thông báo đơn mới
+
+Chuông header chuyển vàng kèm số đơn status=new của quán, hoạt động trên mọi trang quản lý (cả Thống kê/Thực đơn), đếm chính xác từ server thay vì giới hạn 200 đơn trong danh sách. Nhấn chuông mở Đơn gọi món với bộ lọc Mới; không đánh dấu hết thông báo chỉ bằng việc bấm chuông. Khi nhận/từ chối đơn, số mới giảm và chuông trở lại bình thường nếu không còn đơn Mới.
+
+Kiểm tra mỗi 10 giây khi tab hiển thị, kiểm tra ngay khi quay lại tab và sau thao tác xử lý đơn trong cùng trang. Không tải lại toàn bộ trang hoặc form đang nhập. Khi mạng lỗi giữ số gần nhất và tooltip báo chưa cập nhật được; số chưa chắc còn mới. Watcher dừng khi đăng xuất/đổi tài khoản, bỏ qua phản hồi cũ. Không có thông báo đẩy khi đóng trình duyệt và không phát âm thanh. Không cần SQL mới, dùng quyền đọc đơn hiện có.

@@ -69,9 +69,9 @@ export function createOrderCart({backend,slug,tableToken,table,getDishes,escape,
  }
  return {mount};
 }
-export function mountOrderManager({backend,restaurantId,restaurant,escape,money,toast}) {
+export function mountOrderManager({backend,restaurantId,restaurant,escape,money,toast,initialFilter='all'}) {
  const root=document.querySelector('#orders-content');
- let stopped=false,loading=false,mutating=false,history=false,rows=[],pending=[],filter='all',search='',lastUpdate='',lastError='',tableFilter='all',tableOptions=[];
+ let stopped=false,loading=false,mutating=false,history=false,rows=[],pending=[],filter=initialFilter,search='',lastUpdate='',lastError='',tableFilter='all',tableOptions=[];
  const stamp=date=>new Date(date).toLocaleString('vi-VN');
  function draw(){
   if(stopped||!root.isConnected)return;
@@ -98,7 +98,7 @@ export function mountOrderManager({backend,restaurantId,restaurant,escape,money,
    if(loading||mutating)return;
    if(b.dataset.status==='rejected'&&!confirm('Từ chối đơn này?'))return;
    const o=rows.find(o=>o.id===b.dataset.order);mutating=true;draw();
-   try{await withLoadTimeout(backend.setOrderStatus(o.id,o.status,b.dataset.status))}catch(error){toast(error.message)}finally{mutating=false;await load()}
+   try{await withLoadTimeout(backend.setOrderStatus(o.id,o.status,b.dataset.status));document.dispatchEvent(new Event('qrmenu-orders-changed'))}catch(error){toast(error.message)}finally{mutating=false;await load()}
   });
  }
  async function load(){

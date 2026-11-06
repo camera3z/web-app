@@ -52,6 +52,12 @@ export function createBackend(client) {
     async placeOrder(slug, items, note, requestToken, clientToken, total, tableToken) {
       return checked(await client.rpc('place_menu_order', {menu_slug:slug,order_items:items,order_note:note,request_token:requestToken,client_token:clientToken,expected_total:total,...(tableToken?{table_token:tableToken}:{})}));
     },
+    async newOrderCount(restaurantId) {
+      const result=await client.from('menu_orders').select('id',{count:'exact',head:true}).eq('restaurant_id',restaurantId).eq('status','new');
+      if(result.error)throw result.error;
+      if(typeof result.count!=='number')throw new Error('Không đọc được số đơn mới');
+      return result.count;
+    },
     async orders(restaurantId, history=false) {
       let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at,table_id,table_number').eq('restaurant_id',restaurantId);
       query=query.in('status',history?['served','rejected']:['new','accepted','preparing']);

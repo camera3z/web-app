@@ -197,3 +197,7 @@ QR bàn có thể được chia sẻ/chụp ảnh; đây không phải xác minh
 4. Đối chiếu một đơn chuyển sang Đã phục vụ: giá trị sẽ vào kỳ hoàn tất (không phải ngày khách đặt). Tải lại báo cáo để thấy số mới. Tiền mặt đã ghi nhận chỉ phản ánh các bản ghi thanh toán thực có, không tự đánh dấu đơn đã phục vụ là đã thu tiền.
 
 Dữ liệu cũ trước khi cài đặt chưa có completed_at, dùng updated_at gần đúng. Vì luồng hiện tại không bắt buộc thu tiền, không dùng giá trị đơn hoàn tất làm số thực thu chính xác. Chưa có báo cáo chi phí/lợi nhuận hoặc khấu trừ hoàn tiền.
+
+## Chuông vàng báo đơn mới
+
+Chỉ cập nhật frontend, không cần SQL. Đăng nhập chủ quán, mở Thống kê hoặc Thực đơn; dùng điện thoại gửi một đơn test. Trong khoảng 10 giây khi tab quản lý đang mở, chuông phải vàng kèm số đơn mới. Nhấn chuông mở danh sách lọc Mới, nhận đơn để số đếm giảm. Nếu hết đơn mới chuông trở lại bình thường. Đóng trình duyệt sẽ không có thông báo đẩy; tab ẩn kiểm tra lại khi được mở.
