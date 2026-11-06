@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 49 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 55 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -98,3 +98,11 @@ QR chung là luồng chính: xem menu và gọi món từ xa, không có số b�
 Nếu cần bàn, mở Mã QR → Thêm QR theo bàn (tùy chọn), nhập số bàn (ví dụ 3), nhấn Mở / Tạo QR bàn. Chỉ tạo đúng số bàn đó; không tạo 1–3 hay tự tạo 50 bàn. Khu vực này thu gọn mặc định, không hiển thị danh sách hàng loạt. Mở lại một số bàn giữ nguyên mã và cho sao chép link/in một nhãn có tên quán + số bàn lớn. Các bàn đã tạo trước đây được giữ nguyên.
 
 Cài mới chạy tables.sql cuối cùng. Bản đã chạy phiên bản tables.sql cũ cần chạy optional-tables.sql để mở lại gọi món từ QR chung và thêm RPC tạo một bàn. Không xóa dữ liệu. Các đơn có QR bàn nhận số bàn do server xác thực, có bộ lọc bàn và số bàn trên phiếu. Không thể dùng bàn của quán khác. QR có thể bị chụp/chia sẻ; số bàn chỉ định tuyến đơn, không chứng minh khách có mặt tại quán.
+
+## Thống kê ngày, tháng, năm
+
+Chạy `supabase/revenue.sql`, cập nhật frontend và mở Thống kê. Chọn Ngày/Tháng/Năm và kỳ cần xem. RPC tổng hợp toàn bộ dữ liệu của quán, không dùng giới hạn 200 dòng ở màn hình đơn. Xem tổng giá trị đơn hoàn tất, số đơn hoàn tất, trung bình/đơn; tiền mặt đã ghi nhận tách riêng; đơn đang xử lý và số đơn từ chối tạo trong kỳ. Có biểu đồ và bảng theo giờ (ngày), ngày (tháng), tháng (năm), bao gồm các khoảng không phát sinh. Chọn lại kỳ rồi nhấn Xem thống kê để tải số mới, không tự làm mới khi đang nhập bộ lọc.
+
+Múi giờ báo cáo cố định Asia/Ho_Chi_Minh (UTC+7). Giá trị hoàn tất tính status=served theo completed_at, không theo lúc đặt đơn; tiền mặt tính payment_status=paid, payment_method=cash theo paid_at, kể cả đơn chưa phục vụ. Hai chỉ tiêu không được cộng hoặc xem là cùng một số. Hiện luồng phục vụ không bắt buộc xác nhận thanh toán, nên giá trị hoàn tất không khẳng định đã thu tiền. Không tính đơn mới/đang chuẩn bị/từ chối vào tổng hoàn tất. Chưa có chi phí, lợi nhuận, giảm giá hoặc hoàn tiền.
+
+Migration ghi nhận completed_at bằng trigger cho lần chuyển sang served. Đơn cũ đã served nhưng không có thời điểm hoàn tất sẽ dùng updated_at làm mốc gần đúng, không thể tái tạo chính xác lịch sử cũ. Không tự gán thanh toán cho đơn cũ. Đọc báo cáo vẫn cho chủ quán xem dữ liệu lịch sử khi license hết hạn, không cho truy cập quán khác. Kiểm thử gồm ranh giới nửa đêm UTC+7, tháng nhuận, hơn 200 đơn và phân quyền.

@@ -64,6 +64,7 @@ export function createBackend(client) {
     async tables(restaurantId) { return checked(await client.from('restaurant_tables').select('id,table_number,qr_token,active').eq('restaurant_id',restaurantId).order('table_number')); },
     async addTable(number) { checked(await client.rpc('add_restaurant_table',{new_table_number:number})); },
     async ensureTables(count=50) { checked(await client.rpc('ensure_restaurant_tables',{table_count:count})); },
+    async revenue(kind,date) { return checked(await client.rpc('get_revenue_report',{report_kind:kind,chosen_date:date})); },
     async publicMenu(slug) { return checked(await client.rpc('get_public_menu', { menu_slug: slug })); },
     async activate(key) { return checked(await client.rpc('activate_license', { license_key: key })); },
   };

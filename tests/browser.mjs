@@ -44,6 +44,10 @@ try {
   }
   if(path==='/auth/v1/otp')return json({});
   if(path==='/auth/v1/logout')return json({});
+  if(path==='/rest/v1/rpc/get_revenue_report'){
+   const b=route.request().postDataJSON();const count=b.report_kind==='day'?24:b.report_kind==='month'?30:12;
+   return json({kind:b.report_kind,start:b.chosen_date,end_exclusive:'2026-12-01',timezone:'Asia/Ho_Chi_Minh',completed_total:140000,completed_count:2,average_order:70000,cash_total:0,cash_count:0,pending_total:35000,pending_count:1,rejected_count:1,buckets:Array.from({length:count},(_,i)=>({period:String(i),label:String(i+1).padStart(2,'0'),completed_total:i===0?140000:0,completed_count:i===0?2:0,cash_total:0}))});
+  }
   if(path==='/rest/v1/restaurant_tables')return json(tables);
   if(path==='/rest/v1/rpc/add_restaurant_table'){
    const number=route.request().postDataJSON().new_table_number;
@@ -104,6 +108,10 @@ try {
  await page.locator('[data-edit]').click();await page.locator('[name=price]').fill('57000');await page.locator('#dish-photo-file').setInputFiles({name:'online.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.getByText(/Đã chọn online.png/).waitFor();await page.getByRole('button',{name:'Lưu món',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.dish-bottom strong')?.textContent==='57.000đ');assert.equal(cloud.dishes[0].price,57000);assert.match(cloud.dishes[0].image,/storage\/v1\/object\/public\/menu-images\/11111111-1111-4111-8111-111111111111\//);
  failSave=true;await page.locator('[data-toggle]').click();await page.getByText('Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải lại trang',{exact:true}).waitFor();assert.equal(await page.locator('[data-toggle]').isChecked(),true);assert.equal(cloud.dishes[0].available,true);failSave=false;
  console.log('PASS online UI (mock API): signed-out login, server data, save, failed-write rollback');
+ await page.locator('[data-nav=revenue]').click();await page.getByRole('heading',{name:'Thống kê doanh thu',exact:true}).waitFor();await page.locator('.report-kpis strong').first().waitFor();assert.equal(await page.locator('.report-kpis strong').first().textContent(),'140.000đ');assert.equal(await page.locator('.report-table tbody tr').count(),24);
+ await page.locator('[name=kind]').selectOption('month');await page.locator('[name=period]').fill('2026-11');await page.locator('#report-form button').click();await page.waitForFunction(()=>document.querySelectorAll('.report-table tbody tr').length===30);
+ await page.locator('[name=kind]').selectOption('year');await page.locator('[name=period]').fill('2026');await page.locator('#report-form button').click();await page.waitForFunction(()=>document.querySelectorAll('.report-table tbody tr').length===12);
+ await page.setViewportSize({width:375,height:812});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1280,height:720});console.log('PASS revenue UI: daily/monthly/yearly lookup, totals, detail buckets and mobile layout');
  await page.locator('[data-nav=qr]').click();assert.equal(await page.locator('#qr-url').inputValue(),online+'/?menu=quan-test');await page.waitForFunction(()=>document.querySelector('#qr-canvas')?.width>0);
  assert.equal(tables.length,0);assert.equal(await page.locator('#optional-table-qr').getAttribute('open'),null);
  await page.locator('#optional-table-qr summary').click();await page.locator('[name=table_number]').fill('3');await page.locator('#single-table-form button').click();await page.getByRole('heading',{name:'Bàn 03',exact:true}).waitFor();assert.equal(tables.length,1);assert.equal(tables[0].table_number,3);await page.locator('#single-table-form button').click();assert.equal(tables.length,1);

@@ -188,3 +188,12 @@ Sau cập nhật, chọn Nhận đơn, rồi Bắt đầu chuẩn bị. Lúc nà
 5. Kiểm tra cả hai: đơn QR chung hiển thị Không số bàn · Từ xa, đơn QR bàn hiển thị số bàn. Dùng bộ lọc để tách hai nhóm.
 
 QR bàn có thể được chia sẻ/chụp ảnh; đây không phải xác minh khách đang có mặt tại quán. Không có cơ chế mở/đóng bàn theo phiên trong bản này.
+
+## Bật thống kê doanh thu
+
+1. Chạy toàn bộ `supabase/revenue.sql` trong query mới sau khi đã có orders.sql. Script có thể chạy lại và không xóa đơn.
+2. Cập nhật frontend/build lên VPS, tải lại trang bằng Ctrl+Shift+R.
+3. Mở Thống kê. Chọn Ngày/Tháng/Năm, chọn kỳ rồi Xem thống kê. Giờ báo cáo là Việt Nam UTC+7, bao gồm toàn bộ đơn trong database của quán.
+4. Đối chiếu một đơn chuyển sang Đã phục vụ: giá trị sẽ vào kỳ hoàn tất (không phải ngày khách đặt). Tải lại báo cáo để thấy số mới. Tiền mặt đã ghi nhận chỉ phản ánh các bản ghi thanh toán thực có, không tự đánh dấu đơn đã phục vụ là đã thu tiền.
+
+Dữ liệu cũ trước khi cài đặt chưa có completed_at, dùng updated_at gần đúng. Vì luồng hiện tại không bắt buộc thu tiền, không dùng giá trị đơn hoàn tất làm số thực thu chính xác. Chưa có báo cáo chi phí/lợi nhuận hoặc khấu trừ hoàn tiền.
