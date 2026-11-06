@@ -201,3 +201,7 @@ Dữ liệu cũ trước khi cài đặt chưa có completed_at, dùng updated_a
 ## Chuông vàng báo đơn mới
 
 Chỉ cập nhật frontend, không cần SQL. Đăng nhập chủ quán, mở Thống kê hoặc Thực đơn; dùng điện thoại gửi một đơn test. Trong khoảng 10 giây khi tab quản lý đang mở, chuông phải vàng kèm số đơn mới. Nhấn chuông mở danh sách lọc Mới, nhận đơn để số đếm giảm. Nếu hết đơn mới chuông trở lại bình thường. Đóng trình duyệt sẽ không có thông báo đẩy; tab ẩn kiểm tra lại khi được mở.
+
+## Danh sách bàn đã lưu
+
+Mở Mã QR → QR theo bàn (tùy chọn) để tải danh sách các bàn đã tạo. Nhập 1 rồi Thêm bàn, tiếp tục nhập 2 rồi Thêm bàn: cả hai được giữ trong danh sách. Mỗi bàn có Sao chép link / In QR riêng. Danh sách có tìm kiếm và chia trang 12 bàn, không tự tạo 50 bàn. Bản sửa hiển thị danh sách chỉ cần cập nhật frontend, không chạy SQL mới.

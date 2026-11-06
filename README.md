@@ -95,7 +95,7 @@ In qua hộp thoại trình duyệt, máy in được cài trên máy quản lý
 
 QR chung là luồng chính: xem menu và gọi món từ xa, không có số bàn. Trang quản lý ghi Không số bàn · Từ xa, vẫn nhận/xử lý/in đơn bình thường. Khách không bắt buộc chọn hoặc quét QR bàn.
 
-Nếu cần bàn, mở Mã QR → Thêm QR theo bàn (tùy chọn), nhập số bàn (ví dụ 3), nhấn Mở / Tạo QR bàn. Chỉ tạo đúng số bàn đó; không tạo 1–3 hay tự tạo 50 bàn. Khu vực này thu gọn mặc định, không hiển thị danh sách hàng loạt. Mở lại một số bàn giữ nguyên mã và cho sao chép link/in một nhãn có tên quán + số bàn lớn. Các bàn đã tạo trước đây được giữ nguyên.
+Nếu cần bàn, mở Mã QR → Thêm QR theo bàn (tùy chọn), nhập số bàn (ví dụ 3), nhấn Mở / Tạo QR bàn. Chỉ tạo đúng số bàn đó; không tạo 1–3 hay tự tạo 50 bàn. Khu vực này thu gọn mặc định; mở ra sẽ tải danh sách các bàn đã lưu, không tự tạo hàng loạt. Danh sách cộng dồn khi thêm bàn, có tìm kiếm và chia trang 12 bàn. Mỗi bàn có nút sao chép link/in riêng; thêm lại số bàn đã có không tạo trùng hoặc đổi mã. Nhãn có tên quán + số bàn lớn. Các bàn đã tạo trước đây được giữ nguyên.
 
 Cài mới chạy tables.sql cuối cùng. Bản đã chạy phiên bản tables.sql cũ cần chạy optional-tables.sql để mở lại gọi món từ QR chung và thêm RPC tạo một bàn. Không xóa dữ liệu. Các đơn có QR bàn nhận số bàn do server xác thực, có bộ lọc bàn và số bàn trên phiếu. Không thể dùng bàn của quán khác. QR có thể bị chụp/chia sẻ; số bàn chỉ định tuyến đơn, không chứng minh khách có mặt tại quán.
 
@@ -112,3 +112,5 @@ Migration ghi nhận completed_at bằng trigger cho lần chuyển sang served.
 Chuông header chuyển vàng kèm số đơn status=new của quán, hoạt động trên mọi trang quản lý (cả Thống kê/Thực đơn), đếm chính xác từ server thay vì giới hạn 200 đơn trong danh sách. Nhấn chuông mở Đơn gọi món với bộ lọc Mới; không đánh dấu hết thông báo chỉ bằng việc bấm chuông. Khi nhận/từ chối đơn, số mới giảm và chuông trở lại bình thường nếu không còn đơn Mới.
 
 Kiểm tra mỗi 10 giây khi tab hiển thị, kiểm tra ngay khi quay lại tab và sau thao tác xử lý đơn trong cùng trang. Không tải lại toàn bộ trang hoặc form đang nhập. Khi mạng lỗi giữ số gần nhất và tooltip báo chưa cập nhật được; số chưa chắc còn mới. Watcher dừng khi đăng xuất/đổi tài khoản, bỏ qua phản hồi cũ. Không có thông báo đẩy khi đóng trình duyệt và không phát âm thanh. Không cần SQL mới, dùng quyền đọc đơn hiện có.
+
+Bản sửa danh sách bàn chỉ thay frontend: trước đó ô kết quả thay bằng bàn vừa chọn, không phải xóa bàn ở database. Nay tạo Bàn 01 rồi 02 sẽ cùng xuất hiện trong danh sách; rời trang và quay lại sẽ tải lại các bàn đã lưu. Không cần SQL cho bản sửa này.
