@@ -45,6 +45,19 @@ test('table QR isolation, creation, ordering and shared-menu restrictions',async
   await role(A);const order=(await db.query('select table_number,table_id from public.menu_orders where order_code=$1',[first.code])).rows[0];assert.equal(order.table_number,3);assert.equal(order.table_id,tables[0].id);
   const old=(await db.query('select table_number from public.menu_orders where order_code=$1',[legacy.code])).rows[0];assert.equal(old.table_number,null);
  });
+ await t.test('remove table enforces ownership and preserves orders; recreation rotates QR',async()=>{
+  await db.exec('reset role');const migration=await readFile(new URL('../supabase/delete-tables.sql',import.meta.url),'utf8');await db.exec(migration);await db.exec(migration);
+  await role(B);await assert.rejects(()=>db.query('select public.remove_restaurant_table($1)',[tables[0].id]),/Không có quyền/);
+  await role(null);await assert.rejects(()=>db.query('select public.remove_restaurant_table($1)',[tables[0].id]),/permission denied/);
+  await role(A);await db.query('select public.remove_restaurant_table($1)',[tables[0].id]);await db.query('select public.remove_restaurant_table($1)',[tables[0].id]);
+  assert.equal((await db.query('select active from public.restaurant_tables where id=$1',[tables[0].id])).rows[0].active,false);
+  assert.equal((await db.query('select table_number from public.menu_orders where table_id=$1',[tables[0].id])).rows[0].table_number,3);
+  await role(null);assert.equal((await db.query('select public.get_table_context($1,$2) c',[r.slug,tables[0].qr_token])).rows[0].c,null);
+  await assert.rejects(()=>db.query('select public.place_menu_order($1,$2::jsonb,$3,$4,$5,$6,$7)',[...args(),tables[0].qr_token]),/không nhận đơn/);
+  await role(A);await db.query('select public.add_restaurant_table(3)');const recreated=(await db.query('select * from public.restaurant_tables where id=$1',[tables[0].id])).rows[0];assert.equal(recreated.active,true);assert.notEqual(recreated.qr_token,tables[0].qr_token);
+  await role(null);assert.equal((await db.query('select public.get_table_context($1,$2) c',[r.slug,tables[0].qr_token])).rows[0].c,null);assert.equal((await db.query('select public.get_table_context($1,$2) c',[r.slug,recreated.qr_token])).rows[0].c.number,3);
+  tables[0]=recreated;
+ });
  await t.test('disabled table cannot accept new orders',async()=>{
   await db.exec('reset role');await db.query('update public.restaurant_tables set active=false where id=$1',[tables[0].id]);await role(null);await assert.rejects(()=>db.query('select public.place_menu_order($1,$2::jsonb,$3,$4,$5,$6,$7)',[...args(),tables[0].qr_token]),/không nhận đơn/);
  });

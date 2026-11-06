@@ -31,7 +31,7 @@ Nếu đã có Chromium hệ thống:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 ```
 
-`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 57 bài kiểm tra trở lên, không chỉ báo tên file.
+`npm test` kiểm tra SQL thực thi trên PostgreSQL WASM (PGlite), gồm RLS, cô lập quán, key kích hoạt, hết hạn/thu hồi, dữ liệu không hợp lệ và xung đột phiên bản. Tắt test process isolation vì runtime WASM có thể kết thúc worker trước khi runner báo số bài kiểm tra trên một số phiên bản Node. Lệnh phải báo 58 bài kiểm tra trở lên, không chỉ báo tên file.
 
 `test:browser` tự khởi động hai Vite server tại cổng 5186/5187, kiểm tra demo và online bằng API Supabase giả lập. Không dùng project hoặc tài khoản thật. Cần Chromium và quyền mở cổng local.
 
@@ -114,3 +114,7 @@ Chuông header chuyển vàng kèm số đơn status=new của quán, hoạt đ�
 Kiểm tra mỗi 10 giây khi tab hiển thị, kiểm tra ngay khi quay lại tab và sau thao tác xử lý đơn trong cùng trang. Không tải lại toàn bộ trang hoặc form đang nhập. Khi mạng lỗi giữ số gần nhất và tooltip báo chưa cập nhật được; số chưa chắc còn mới. Watcher dừng khi đăng xuất/đổi tài khoản, bỏ qua phản hồi cũ. Không có thông báo đẩy khi đóng trình duyệt và không phát âm thanh. Không cần SQL mới, dùng quyền đọc đơn hiện có.
 
 Bản sửa danh sách bàn chỉ thay frontend: trước đó ô kết quả thay bằng bàn vừa chọn, không phải xóa bàn ở database. Nay tạo Bàn 01 rồi 02 sẽ cùng xuất hiện trong danh sách; rời trang và quay lại sẽ tải lại các bàn đã lưu. Không cần SQL cho bản sửa này.
+
+## Xóa bàn không còn dùng
+
+Chạy `supabase/delete-tables.sql` sau tables.sql/optional-tables.sql và cập nhật frontend. Mỗi bàn có nút Xóa bàn kèm xác nhận. Hệ thống đánh dấu active=false, ẩn khỏi danh sách và ngừng nhận đơn mới qua QR đó; không xóa các đơn hoặc snapshot số bàn cũ. Chỉ chủ quán có license hiệu lực được xóa. Thêm lại số bàn đã xóa sẽ bật lại bàn với token QR mới, mã in cũ không dùng lại được; thêm số bàn đang hoạt động giữ token hiện có. QR chung đặt món từ xa không bị ảnh hưởng. Chạy migration này cuối cùng nếu cài lại các script tạo bàn để giữ cơ chế tái tạo mã mới.

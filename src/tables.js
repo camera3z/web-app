@@ -21,13 +21,21 @@ export function mountTables({backend,restaurant,restaurantId,slug,escape,toast})
   const filtered=rows.filter(t=>!search||String(t.table_number)===search||('Bàn '+String(t.table_number).padStart(2,'0')).toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi')));
   const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.max(0,Math.min(page,pages-1));
   const visible=filtered.slice(page*pageSize,(page+1)*pageSize);
-  result.innerHTML=`<div class="saved-table-count"><strong>${rows.length} bàn đã lưu</strong><span>${filtered.length} kết quả · Trang ${page+1}/${pages}</span></div><div class="saved-table-grid">${visible.map(t=>`<article class="single-table-result ${selected===t.table_number?'just-added':''}" data-saved-table="${t.table_number}"><h3>Bàn ${String(t.table_number).padStart(2,'0')}</h3><p class="muted">${t.active?'Đang sử dụng':'Ngừng nhận đơn'}</p><button class="button secondary" data-copy-table="${t.id}">Sao chép link</button> <button class="button primary" data-print-table="${t.id}">In QR</button></article>`).join('')||`<p class="muted">${loaded?'Chưa có bàn phù hợp. Thêm bàn bằng ô bên trên.':'Đang tải bàn đã lưu…'}</p>`}</div>${pages>1?`<div class="saved-table-pages"><button class="button secondary" id="tables-prev" ${page===0?'disabled':''}>Trang trước</button><button class="button secondary" id="tables-next" ${page===pages-1?'disabled':''}>Trang sau</button></div>`:''}`;
+  result.innerHTML=`<div class="saved-table-count"><strong>${rows.length} bàn đã lưu</strong><span>${filtered.length} kết quả · Trang ${page+1}/${pages}</span></div><div class="saved-table-grid">${visible.map(t=>`<article class="single-table-result ${selected===t.table_number?'just-added':''}" data-saved-table="${t.table_number}"><h3>Bàn ${String(t.table_number).padStart(2,'0')}</h3><p class="muted">${t.active?'Đang sử dụng':'Ngừng nhận đơn'}</p><button class="button secondary" data-copy-table="${t.id}">Sao chép link</button> <button class="button primary" data-print-table="${t.id}">In QR</button> <button class="button table-delete" data-delete-table="${t.id}" ${busy?'disabled':''}>Xóa bàn</button></article>`).join('')||`<p class="muted">${loaded?'Chưa có bàn phù hợp. Thêm bàn bằng ô bên trên.':'Đang tải bàn đã lưu…'}</p>`}</div>${pages>1?`<div class="saved-table-pages"><button class="button secondary" id="tables-prev" ${page===0?'disabled':''}>Trang trước</button><button class="button secondary" id="tables-next" ${page===pages-1?'disabled':''}>Trang sau</button></div>`:''}`;
   result.querySelector('#tables-prev')?.addEventListener('click',()=>{page--;draw()});result.querySelector('#tables-next')?.addEventListener('click',()=>{page++;draw()});
+  result.querySelectorAll('[data-delete-table]').forEach(b=>b.onclick=async()=>{
+   if(busy)return;const table=rows.find(t=>t.id===b.dataset.deleteTable);
+   if(!confirm(`Xóa Bàn ${String(table.table_number).padStart(2,'0')} khỏi danh sách? QR bàn này ngừng nhận đơn mới. Các đơn cũ vẫn được giữ.`))return;
+   busy=true;form.querySelector('button').disabled=true;message.textContent='';draw();
+   try{await withLoadTimeout(backend.removeTable(table.id));await load();if(!stopped)toast('Đã xóa Bàn '+table.table_number+'. Lịch sử đơn được giữ nguyên.')}
+   catch(error){if(!stopped)message.textContent=error.message}
+   finally{busy=false;form.querySelector('button').disabled=false;draw()}
+  });
   result.querySelectorAll('[data-copy-table]').forEach(b=>b.onclick=async()=>{const t=rows.find(t=>t.id===b.dataset.copyTable);try{await navigator.clipboard.writeText(tableMenuURL(slug,t.qr_token));toast('Đã sao chép link Bàn '+t.table_number)}catch{message.textContent='Không sao chép được liên kết. Kiểm tra quyền clipboard.'}});
   result.querySelectorAll('[data-print-table]').forEach(b=>b.onclick=async()=>{const t=rows.find(t=>t.id===b.dataset.printTable);try{await printTableLabels([t],restaurant,slug,escape)}catch(error){message.textContent=error.message}});
  }
  async function load(){rows=await withLoadTimeout(backend.tables(restaurantId));if(stopped)return;loaded=true;rows.sort((a,b)=>a.table_number-b.table_number);draw()}
- root.querySelector('details').addEventListener('toggle',async e=>{if(e.target.open&&!loaded&&!busy){busy=true;form.querySelector('button').disabled=true;draw();try{await load()}catch(error){if(!stopped)message.textContent=error.message}finally{busy=false;form.querySelector('button').disabled=false}}});
+ root.querySelector('details').addEventListener('toggle',async e=>{if(e.target.open&&!loaded&&!busy){busy=true;form.querySelector('button').disabled=true;draw();try{await load()}catch(error){if(!stopped)message.textContent=error.message}finally{busy=false;form.querySelector('button').disabled=false;draw()}}});
  root.querySelector('#saved-table-search').oninput=e=>{search=e.target.value.trim();page=0;draw()};
  form.onsubmit=async e=>{
   e.preventDefault();if(busy)return;const number=Number(form.elements.table_number.value);if(!Number.isInteger(number)||number<1||number>200)return;
@@ -36,7 +44,7 @@ export function mountTables({backend,restaurant,restaurantId,slug,escape,toast})
    await withLoadTimeout(backend.addTable(number));await load();if(stopped)return;
    selected=number;search='';root.querySelector('#saved-table-search').value='';page=Math.max(0,Math.floor(rows.findIndex(t=>t.table_number===number)/pageSize));draw();form.elements.table_number.value='';toast('Đã lưu Bàn '+String(number).padStart(2,'0')+'. Các bàn khác được giữ nguyên.');
   }catch(error){if(!stopped)message.textContent=error.message}
-  finally{busy=false;form.querySelector('button').disabled=false}
+  finally{busy=false;form.querySelector('button').disabled=false;draw()}
  };
  return ()=>{stopped=true};
 }

@@ -205,3 +205,7 @@ Chỉ cập nhật frontend, không cần SQL. Đăng nhập chủ quán, mở T
 ## Danh sách bàn đã lưu
 
 Mở Mã QR → QR theo bàn (tùy chọn) để tải danh sách các bàn đã tạo. Nhập 1 rồi Thêm bàn, tiếp tục nhập 2 rồi Thêm bàn: cả hai được giữ trong danh sách. Mỗi bàn có Sao chép link / In QR riêng. Danh sách có tìm kiếm và chia trang 12 bàn, không tự tạo 50 bàn. Bản sửa hiển thị danh sách chỉ cần cập nhật frontend, không chạy SQL mới.
+
+## Xóa bàn
+
+Chạy supabase/delete-tables.sql trong SQL Editor, sau đó cập nhật VPS. Trong Mã QR → QR theo bàn, nhấn Xóa bàn ở đúng bàn rồi xác nhận. Bàn bị bỏ khỏi danh sách, mã QR ngừng nhận đơn mới; đơn cũ vẫn giữ nguyên. Nếu chỉ bấm nhầm, chọn Hủy trong hộp xác nhận. Nếu đã xác nhận và muốn dùng lại số bàn, thêm lại số đó rồi in QR mới; không dùng lại nhãn cũ. Thao tác không xóa đơn hoặc ảnh hưởng QR chung.
