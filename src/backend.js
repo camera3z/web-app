@@ -58,6 +58,19 @@ export function createBackend(client) {
       if(typeof result.count!=='number')throw new Error('Không đọc được số đơn mới');
       return result.count;
     },
+    async orderOverview(restaurantId) {
+      const statuses=['new','accepted','preparing'];
+      const results=await Promise.all([
+        ...statuses.map(status=>client.from('menu_orders').select('id',{count:'exact',head:true}).eq('restaurant_id',restaurantId).eq('status',status)),
+        client.from('menu_orders').select('id,order_code,total,status,items,created_at,table_number').eq('restaurant_id',restaurantId).in('status',statuses).order('created_at',{ascending:true}).limit(5),
+      ]);
+      const counts={};statuses.forEach((status,index)=>{checked(results[index]);if(typeof results[index].count!=='number')throw new Error('Không đọc được số đơn');counts[status]=results[index].count});
+      return {counts,orders:checked(results[3])};
+    },
+    async menuOverview(restaurantId) {
+      const data=checked(await client.from('restaurants').select('dishes').eq('id',restaurantId).single());
+      return data.dishes;
+    },
     async orders(restaurantId, history=false) {
       let query=client.from('menu_orders').select('id,order_code,items,total,note,status,created_at,updated_at,table_id,table_number').eq('restaurant_id',restaurantId);
       query=query.in('status',history?['served','rejected']:['new','accepted','preparing']);

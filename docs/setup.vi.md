@@ -209,3 +209,7 @@ Mở Mã QR → QR theo bàn (tùy chọn) để tải danh sách các bàn đã
 ## Xóa bàn
 
 Chạy supabase/delete-tables.sql trong SQL Editor, sau đó cập nhật VPS. Trong Mã QR → QR theo bàn, nhấn Xóa bàn ở đúng bàn rồi xác nhận. Bàn bị bỏ khỏi danh sách, mã QR ngừng nhận đơn mới; đơn cũ vẫn giữ nguyên. Nếu chỉ bấm nhầm, chọn Hủy trong hộp xác nhận. Nếu đã xác nhận và muốn dùng lại số bàn, thêm lại số đó rồi in QR mới; không dùng lại nhãn cũ. Thao tác không xóa đơn hoặc ảnh hưởng QR chung.
+
+## Bố cục Tổng quan
+
+Bản đổi Trang chủ thành Tổng quan chỉ cần cập nhật frontend, không cần SQL. Đơn gọi món hiển thị trước, kế đến Thực đơn và Thống kê. Các module chỉ tóm tắt số liệu và một phần danh sách; nhấn Xem đơn chi tiết / Quản lý thực đơn / Xem thống kê để thao tác đầy đủ. Đơn tóm tắt tối đa 5 dòng nhưng số đếm tính toàn bộ.

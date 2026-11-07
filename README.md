@@ -81,7 +81,7 @@ Kiểm thử SQL dùng PostgreSQL WASM; kiểm thử trình duyệt dùng API gi
 
 Giỏ chưa gửi chỉ giữ trong lần mở trang hiện tại: mở lại hoặc tải lại menu bắt đầu số lượng 0, không tự chọn từ bản nháp cũ. Chuyển danh mục trong cùng trang vẫn giữ lựa chọn. Nút Xóa giỏ bỏ toàn bộ lựa chọn và ghi chú. Riêng yêu cầu đã gửi nhưng chưa xác định kết quả vẫn được khôi phục/khóa chỉnh để gửi lại an toàn, và mã đơn đã gửi gần nhất vẫn được giữ.
 
-Trang chủ mặc định là bảng điều hành đơn hàng trực tiếp, không phải trang giới thiệu hoặc tab thực đơn. Có bốn ô số liệu (đang chờ, mới, đã nhận, đang chuẩn bị), bảng đơn gọn với thời gian tạo/cập nhật, món, ghi chú, tổng số phần, tổng tiền, trạng thái và thao tác. Có tìm theo mã/món/ghi chú, lọc theo trạng thái, lịch sử và tổng món cần chuẩn bị theo bộ lọc. Mục Đơn gọi món dùng cùng bảng đầy đủ; mục Thực đơn tách riêng. Desktop dùng bảng, điện thoại xếp thành từng dòng thông tin. Số liệu dựa trên tối đa 200 đơn đang chờ; lịch sử tối đa 200 đơn hoàn tất mới nhất. Không phải báo cáo doanh thu toàn bộ.
+Trang đầu là Tổng quan, gồm ba module theo thứ tự Đơn gọi món → Thực đơn → Thống kê. Chỉ có số liệu chính, tối đa 5 đơn đang chờ lâu nhất, tối đa 5 món và giá trị hoàn tất hôm nay. Bộ đếm đơn tổng quan dùng count chính xác phía server, không bị giới hạn 5 hay 200 dòng. Đơn tóm tắt làm mới mỗi 10 giây, thực đơn và số liệu hôm nay mỗi 60 giây khi tab hiển thị; kiểm tra lại khi quay về tab. Không có bộ lọc/thao tác xử lý đầy đủ trên Tổng quan; mỗi module có nút mở chi tiết. Mục Đơn gọi món vẫn có bảng đầy đủ, trạng thái, tìm/lọc, lịch sử và in; mục Thực đơn có quản lý món; Thống kê có tra ngày/tháng/năm. Trang chi tiết đơn vẫn giới hạn 200 dòng mỗi danh sách, báo cáo không giới hạn 200 đơn.
 
 ## In đơn theo luồng phục vụ
 
