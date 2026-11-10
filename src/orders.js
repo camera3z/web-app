@@ -21,7 +21,7 @@ export function createOrderCart({backend,slug,tableToken,table,getDishes,escape,
  }catch{}
  let clientId;try{clientId=localStorage.getItem('qrmenu-order-client')}catch{}
  if(!/^[0-9a-f-]{36}$/i.test(clientId||'')){clientId=crypto.randomUUID();try{localStorage.setItem('qrmenu-order-client',clientId)}catch{}}
- let busy=false;
+ let busy=false,cartObserver=null;
  const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify({...state,quantities:state.attempt?state.quantities:{},note:state.attempt?state.note:''}))}catch{}};
  const lines=()=>Object.entries(state.quantities).filter(([,n])=>Number.isInteger(n)&&n>0).map(([id,quantity])=>({dish:getDishes().find(d=>d.id===id),id,quantity}));
  const total=()=>lines().reduce((n,l)=>n+(l.dish?.price||0)*l.quantity,0);
@@ -33,6 +33,17 @@ export function createOrderCart({backend,slug,tableToken,table,getDishes,escape,
   root.querySelector('#order-note').oninput=e=>{state.note=e.target.value;persist()};
   root.querySelector('#send-order').onclick=send;
   root.querySelector('#clear-cart').onclick=()=>{if(locked())return;state.quantities={};state.note='';persist();mount()};
+  const bar=document.querySelector('#public-cart-bar');
+  if(bar){
+    const quantity=lines().reduce((n,line)=>n+line.quantity,0);const rect=root.getBoundingClientRect();
+    bar.hidden=quantity===0||(rect.top<innerHeight-80&&rect.bottom>0);
+    bar.querySelector('#public-cart-count').textContent=quantity;bar.querySelector('#public-cart-total').textContent=money(total());bar.setAttribute('aria-label',`Xem giỏ món, ${quantity} phần, ${money(total())}`);
+    cartObserver?.disconnect();
+    if(typeof IntersectionObserver!=='undefined'){
+      cartObserver=new IntersectionObserver(entries=>{if(!root.isConnected)return;const shown=entries[0].intersectionRatio>=0.1;bar.hidden=lines().length===0||shown},{threshold:[0,0.1]});
+      cartObserver.observe(root);
+    }
+  }
   document.querySelectorAll('[data-cart-count]').forEach(el=>{el.textContent=state.quantities[el.dataset.cartCount]||0});
   document.querySelectorAll('[data-cart-change]').forEach(b=>{
     const id=b.dataset.cartChange,delta=Number(b.dataset.delta),quantity=state.quantities[id]||0;
