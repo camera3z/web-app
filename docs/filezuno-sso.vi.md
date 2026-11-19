@@ -4,6 +4,8 @@
 
 Không tạo project mới, không chạy lại schema SQL, không đổi UID/chủ sở hữu quán hoặc chuyển bản quyền. Luồng email/mật khẩu, liên kết email, khôi phục mật khẩu và key QR Menu đang có được giữ nguyên. Việc bán gói/key QR Menu qua Filezuno là bước riêng sau tích hợp tài khoản.
 
+QR Menu có trang đăng nhập riêng theo bố cục Rentbook: giới thiệu ứng dụng bên trái, Filezuno và form email bên phải, dùng màu kem/cam đất của QR Menu. Khi chưa đăng nhập, trang quản lý hiện màn hình này; menu công khai của khách vẫn truy cập bằng QR như trước. Trên điện thoại phần giới thiệu được rút gọn để ưu tiên thao tác đăng nhập. Đăng ký, quên mật khẩu và liên kết email dùng cùng bố cục.
+
 ## 1. Cấu hình Supabase của QR Menu
 
 Trong **project QR Menu hiện có**:

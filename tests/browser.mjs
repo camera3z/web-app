@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 const root=new URL('../',import.meta.url).pathname;
+const artifacts=process.env.QRMENU_TEST_ARTIFACTS||join(tmpdir(),'qrmenu-browser-artifacts');
 const children=[];
 let browser;
 const start=async(port,online)=>{
@@ -84,7 +88,26 @@ try {
  };
  await context.route('https://qrmenu-test.supabase.co/**',mockRoute);
  // Configured environment without a session must show login, never an auth error or demo.
- await page.goto(online);await page.getByRole('heading',{name:'Đăng nhập',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),0);
+ await page.goto(online);await page.getByRole('heading',{name:'Đăng nhập bàn điều hành.',exact:true}).waitFor();assert.equal(await page.locator('.dish').count(),0);
+ assert.equal(await page.locator('.sidebar').count(),0);assert.equal(await page.locator('.cloud-notice').count(),0);
+ assert.equal(await page.getByLabel('Email',{exact:true}).isVisible(),true);
+ assert.equal(await page.getByRole('button',{name:'Đăng nhập bằng Filezuno',exact:true}).count(),1);
+ await mkdir(artifacts,{recursive:true});
+ await page.setViewportSize({width:1304,height:800});
+ const story=await page.locator('.auth-story').boundingBox(),panel=await page.locator('.auth-panel').boundingBox();
+ assert.ok(story.x<panel.x&&Math.abs(story.y-panel.y)<2);assert.ok(Math.abs(story.width-panel.width)<2);
+ await page.screenshot({path:join(artifacts,'qrmenu-login-desktop.png'),fullPage:true});
+ for(const width of [360,375,760]){
+   await page.setViewportSize({width,height:812});
+   const a=await page.locator('.auth-story').boundingBox(),b=await page.locator('.auth-panel').boundingBox();
+   assert.ok(a.y<b.y&&Math.abs(a.x-b.x)<2);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ }
+ await page.setViewportSize({width:375,height:812});
+ assert.ok((await page.locator('#auth-submit').boundingBox()).y<812);
+ await page.screenshot({path:join(artifacts,'qrmenu-login-mobile.png'),fullPage:true});
+ await page.setViewportSize({width:1280,height:800});
+ console.log('PASS login page: standalone two-column layout, Filezuno/email access, stacked mobile layout without overflow');
  await page.clock.install();await page.locator('[data-auth-mode=signup]').click();
  await page.locator('[name=email]').fill(user.email);await page.locator('[name=password]').fill('Test-password-123!');await page.locator('[name=confirm_password]').fill('Mismatch-password!');await page.locator('#auth-submit').click();await page.getByText('Hai mật khẩu chưa khớp. Vui lòng nhập lại.').waitFor();
  await page.locator('[name=confirm_password]').fill('Test-password-123!');await page.locator('#auth-submit').click();await page.getByText(/Dịch vụ gửi email đang đạt giới hạn/).waitFor();assert.equal(await page.locator('#auth-submit').isDisabled(),true);

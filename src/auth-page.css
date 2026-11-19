@@ -1,0 +1,60 @@
+/* Dedicated account entry, sharing QR Menu's ivory and terracotta palette. */
+.auth-page{min-height:100svh;display:flex;flex-direction:column;background:var(--cream);color:var(--ink)}
+.auth-header{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:72px;padding:16px 32px}
+.auth-brand{display:inline-flex;align-items:center;gap:10px;font-size:21px;font-weight:750;letter-spacing:-.7px;line-height:1}
+.auth-brand-mark{display:grid;place-items:center;background:var(--accent);color:#fff;width:27px;height:27px;border-radius:7px}
+.auth-brand-mark svg{width:19px;height:19px;stroke-width:2}
+.auth-page .button{font-size:13px;font-weight:600;min-height:41px;padding:11px 16px;letter-spacing:0;white-space:normal;line-height:1.4}
+.auth-page .auth-header-link{min-height:32px;padding:6px 12px;font-size:12px;font-weight:500;background:#fff}
+.auth-main{flex:1;display:grid;place-items:center;padding:24px 24px 32px;min-width:0}
+.auth-layout{width:min(100%,960px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px #45312405}
+.auth-story{display:flex;flex-direction:column;align-items:flex-start;padding:38px 36px;min-width:0;background:#f1e4d8}
+.auth-story .auth-brand{font-size:20px}
+.auth-story-intro{margin-top:32px}
+.auth-page .eyebrow{font-size:10px;font-weight:500;line-height:1.7;letter-spacing:.6px;color:#8b624f}
+.auth-story h2{font-size:26px;line-height:1.65;font-weight:700;letter-spacing:-.7px;margin:20px 0}
+.auth-story p{font-size:13px;line-height:1.9;color:#746a61;max-width:330px;margin:0}
+.auth-workflow{list-style:none;padding:0;margin:64px 0 0;display:grid;gap:15px;font-size:11px;line-height:1.6;color:#8e492b}
+.auth-workflow li{display:flex;gap:10px;align-items:baseline}
+.auth-workflow span{font-size:10px;font-variant-numeric:tabular-nums}
+.auth-panel{padding:34px 36px;min-width:0}
+.auth-page .auth-form{background:none;border:0;box-shadow:none;border-radius:0;padding:0;margin:0;max-width:none}
+.auth-form h1{font-size:24px;line-height:1.45;font-weight:700;letter-spacing:-.5px;margin:10px 0}
+.auth-form .auth-intro{font-size:12px;line-height:1.8;color:var(--muted);margin:0 0 22px}
+.auth-sso>.button{width:100%}
+.auth-sso>p{font-size:11px;line-height:1.7;color:var(--muted);margin:9px 0 0}
+.auth-sso #filezuno-status{color:var(--accent-dark);overflow-wrap:anywhere}
+.auth-sso #filezuno-status:empty{display:none}
+.auth-divider{display:flex;align-items:center;gap:12px;font-size:10px;line-height:1.6;color:#8a8c8f;margin:20px 0 0}
+.auth-divider:before,.auth-divider:after{content:'';height:1px;flex:1;background:#eee7e1}
+.auth-page .field{font-size:12px;gap:7px;margin:16px 0;color:#697079;font-weight:400}
+.auth-page .field input{font-size:14px;min-height:42px;padding:10px 12px;background:#fff;border-color:var(--line)}
+.auth-page .field input::placeholder{color:#a2a4a5;font-size:12px}
+.auth-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:22px}
+.auth-page .auth-links{margin-top:17px;gap:8px 18px}
+.auth-page .auth-links button{font-size:11px;text-decoration:none;line-height:1.7}
+.auth-page .auth-links button:hover{text-decoration:underline}
+.auth-page #auth-message:not(:empty){font-size:12px;line-height:1.8;background:#fff6ed;color:#994926;border:1px solid #f0d9c7;border-radius:8px;padding:10px 12px;margin-top:16px;overflow-wrap:anywhere}
+.auth-existing-account{font-size:10px;color:#88837e;line-height:1.8;border-top:1px solid #eee7e1;padding-top:14px;margin:20px 0 0}
+.auth-footer{padding:0 20px 20px;text-align:center;font-size:10px;color:#93908b;line-height:1.7}
+@media(min-width:761px){.auth-workflow{margin-top:auto;padding-top:64px}}
+@media(max-width:760px){
+  .auth-header{min-height:64px;padding:16px 20px}
+  .auth-main{padding:16px 20px 28px;align-items:start}
+  .auth-layout{max-width:520px;grid-template-columns:minmax(0,1fr)}
+  .auth-story{padding:25px 28px}
+  .auth-story>.auth-brand,.auth-story-intro>.eyebrow,.auth-workflow{display:none}
+  .auth-story-intro{margin-top:0}
+  .auth-story h2{font-size:24px;line-height:1.5;margin:0 0 10px}
+  .auth-story p{font-size:12px;line-height:1.8;max-width:none}
+  .auth-panel{padding:28px}
+}
+@media(max-width:400px){
+  .auth-main{padding:12px 12px 24px}
+  .auth-header{padding:14px 16px}
+  .auth-story{padding:24px}
+  .auth-story h2{font-size:22px;letter-spacing:-.6px}
+  .auth-panel{padding:26px 24px}
+  .auth-form h1{font-size:22px}
+  .auth-page .field input{font-size:16px}
+}
