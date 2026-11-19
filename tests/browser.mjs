@@ -5,7 +5,7 @@ const root=new URL('../',import.meta.url).pathname;
 const children=[];
 let browser;
 const start=async(port,online)=>{
- const env={...process.env,VITE_SUPABASE_URL:online?'https://qrmenu-test.supabase.co':'',VITE_SUPABASE_ANON_KEY:online?'test-public-key':''};
+ const env={...process.env,VITE_FILEZUNO_SSO:online?'1':'0',VITE_SUPABASE_URL:online?'https://qrmenu-test.supabase.co':'',VITE_SUPABASE_ANON_KEY:online?'test-public-key':''};
  const child=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:root,env,stdio:['ignore','pipe','pipe']});
  children.push(child);let logs='';child.stdout.on('data',b=>logs+=b);child.stderr.on('data',b=>logs+=b);
  for(let i=0;i<100;i++){

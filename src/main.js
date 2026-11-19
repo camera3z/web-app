@@ -2,6 +2,7 @@ import { createIcons, ScanLine, ChevronsUpDown, LayoutDashboard, Utensils, QrCod
 const icons = { ScanLine, ChevronsUpDown, LayoutDashboard, Utensils, QrCode, Store, Sparkles, ArrowUpRight, CircleHelp, Settings2, ChevronRight, Bell, ExternalLink, Sprout, ArrowRight, Heart, CircleCheck, Layers2, Plus, Search, LayoutGrid, List, Lightbulb, CheckCheck, Download, Copy, Check, KeyRound, Coffee, X, Pencil, ShoppingBag, House, ChartNoAxesColumnIncreasing, UserRound, ClipboardList };
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
+import { createFilezunoAuth, FILEZUNO_PROVIDER, isFilezunoCallback } from './filezuno-auth.js';
 import './style.css';
 import './brand.css';
 import { mountOverview } from './overview.js';
@@ -44,13 +45,21 @@ let restaurant;try{restaurant=JSON.parse(localStorage.getItem('qrmenu-restaurant
 let supabase = null, configurationError = '';
 const configuredURL = import.meta.env.VITE_SUPABASE_URL;
 const configuredKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const oauthStorage = {
+  get length(){return sessionStorage.length}, key:i=>sessionStorage.key(i),
+  getItem:key=>sessionStorage.getItem(key), setItem:(key,value)=>sessionStorage.setItem(key,value), removeItem:key=>sessionStorage.removeItem(key),
+};
 if (configuredURL || configuredKey) {
   try {
     if (!configuredURL || !configuredKey) throw new Error('Thiếu Project URL hoặc publishable/anon key.');
-    supabase = createClient(configuredURL, configuredKey);
+    const oauthCallback = import.meta.env.VITE_FILEZUNO_SSO === '1' && isFilezunoCallback(oauthStorage, location.href);
+    supabase = createClient(configuredURL, configuredKey, oauthCallback ? {auth:{detectSessionInUrl:false}} : {});
   } catch { configurationError = 'Cấu hình Supabase chưa hợp lệ. Kiểm tra URL và key công khai rồi khởi động lại ứng dụng.'; }
 }
 const backend = supabase ? createBackend(supabase) : null;
+const filezunoSSO = supabase && import.meta.env.VITE_FILEZUNO_SSO === '1';
+const filezuno = filezunoSSO ? createFilezunoAuth({ primary: supabase, createClient, url: configuredURL, key: configuredKey, storage: oauthStorage, location, history }) : null;
+let filezunoMessage = '', authReady = false;
 let authMode='signin', passwordMode=new URLSearchParams(location.search).has('reset');
 let account = null, cloudRestaurant = null, licenses = [], saving = false, bootId = 0;
 const publicTableToken=new URLSearchParams(location.search).get('table');
@@ -121,16 +130,28 @@ function authHTML() {
   const title={signin:'Đăng nhập',signup:'Tạo tài khoản',forgot:'Quên mật khẩu',link:'Đăng nhập bằng liên kết',password:'Đặt mật khẩu'}[mode];
   const needsPassword=['signin','signup','password'].includes(mode);
   const confirmPassword=['signup','password'].includes(mode);
-  return `<form id="auth-form" class="panel settings-form" data-mode="${mode}"><h2>${title}</h2><p class="muted">${!backend?'Chế độ demo. Cần kết nối Supabase để sử dụng tài khoản.':mode==='forgot'?'Nhận liên kết để đặt lại mật khẩu. Tài khoản dùng liên kết email trước đây cũng có thể đặt mật khẩu tại đây.':mode==='password'?'Đặt mật khẩu để lần sau đăng nhập trực tiếp bằng email.':mode==='signup'?'Tạo tài khoản cho cửa hàng của bạn. Sau khi đăng ký, xác nhận email rồi kích hoạt key sử dụng.':'Sử dụng tài khoản của bạn để quản lý thực đơn.'}</p><fieldset ${!backend?'disabled':''}>${mode!=='password'?'<label class="field">Email<input type="email" name="email" placeholder="Email của bạn" autocomplete="email" required maxlength="254"></label>':''}${needsPassword?`<label class="field">${mode==='password'?'Mật khẩu mới':'Mật khẩu'}<input type="password" name="password" autocomplete="${mode==='signin'?'current-password':'new-password'}" ${mode==='signin'?'':'minlength="8"'} maxlength="128" required></label>`:''}${confirmPassword?'<label class="field">Nhập lại mật khẩu<input type="password" name="confirm_password" autocomplete="new-password" minlength="8" maxlength="128" required></label><p class="muted">Dùng ít nhất 8 ký tự. Không dùng lại mật khẩu của dịch vụ khác.</p>':''}<div id="auth-message" role="status" aria-live="polite"></div><button class="button primary" id="auth-submit">${{signin:'Đăng nhập',signup:'Đăng ký tài khoản',forgot:'Gửi liên kết đặt lại mật khẩu',link:'Gửi liên kết đăng nhập',password:'Lưu mật khẩu'}[mode]}</button><div class="auth-links">${mode==='password'?'<button type="button" data-auth-mode="cancel">Quay lại tài khoản</button>':`<button type="button" data-auth-mode="${mode==='signin'?'signup':'signin'}">${mode==='signin'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>${mode==='signin'?'<button type="button" data-auth-mode="forgot">Quên mật khẩu?</button><button type="button" data-auth-mode="link">Nhận liên kết đăng nhập qua email</button>':''}`}</div></fieldset></form>`;
+  return `${filezuno && ['signin','signup'].includes(mode) ? `<section class="panel settings-form filezuno-auth"><span class="eyebrow">TÀI KHOẢN FILEZUNO</span><h2>Một tài khoản, nhiều ứng dụng.</h2><p>Dùng tài khoản Filezuno để truy cập QR Menu.</p><button type="button" class="button primary" id="filezuno-signin">${icon('user-round')}Đăng nhập bằng Filezuno</button><p class="muted">Đã có quán trên QR Menu? Đăng nhập bằng email cũ bên dưới, sau đó chọn Liên kết Filezuno để tiếp tục dùng đúng quán.</p><p id="filezuno-status" role="status" aria-live="polite">${escape(filezunoMessage)}</p></section>` : ''}<form id="auth-form" class="panel settings-form" data-mode="${mode}"><h2>${title}</h2><p class="muted">${!backend?'Chế độ demo. Cần kết nối Supabase để sử dụng tài khoản.':mode==='forgot'?'Nhận liên kết để đặt lại mật khẩu. Tài khoản dùng liên kết email trước đây cũng có thể đặt mật khẩu tại đây.':mode==='password'?'Đặt mật khẩu để lần sau đăng nhập trực tiếp bằng email.':mode==='signup'?'Tạo tài khoản cho cửa hàng của bạn. Sau khi đăng ký, xác nhận email rồi kích hoạt key sử dụng.':'Sử dụng tài khoản của bạn để quản lý thực đơn.'}</p><fieldset ${!backend?'disabled':''}>${mode!=='password'?'<label class="field">Email<input type="email" name="email" placeholder="Email của bạn" autocomplete="email" required maxlength="254"></label>':''}${needsPassword?`<label class="field">${mode==='password'?'Mật khẩu mới':'Mật khẩu'}<input type="password" name="password" autocomplete="${mode==='signin'?'current-password':'new-password'}" ${mode==='signin'?'':'minlength="8"'} maxlength="128" required></label>`:''}${confirmPassword?'<label class="field">Nhập lại mật khẩu<input type="password" name="confirm_password" autocomplete="new-password" minlength="8" maxlength="128" required></label><p class="muted">Dùng ít nhất 8 ký tự. Không dùng lại mật khẩu của dịch vụ khác.</p>':''}<div id="auth-message" role="status" aria-live="polite"></div><button class="button primary" id="auth-submit">${{signin:'Đăng nhập',signup:'Đăng ký tài khoản',forgot:'Gửi liên kết đặt lại mật khẩu',link:'Gửi liên kết đăng nhập',password:'Lưu mật khẩu'}[mode]}</button><div class="auth-links">${mode==='password'?'<button type="button" data-auth-mode="cancel">Quay lại tài khoản</button>':`<button type="button" data-auth-mode="${mode==='signin'?'signup':'signin'}">${mode==='signin'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>${mode==='signin'?'<button type="button" data-auth-mode="forgot">Quên mật khẩu?</button><button type="button" data-auth-mode="link">Nhận liên kết đăng nhập qua email</button>':''}`}</div></fieldset></form>`;
 }
 function licenseHTML(){
   const heading=`<div class="page-heading"><div><div class="eyebrow">QRMenu ACCOUNT</div><h1>Không gian dành riêng cho quán.</h1><p>Tài khoản và bản quyền sử dụng của bạn.</p></div></div>`;
   if(!account||passwordMode)return heading+authHTML();
   const active = hasActiveLicense(licenses);
   const expiry = licenses.filter(l => !l.revoked).sort((a,b)=>Date.parse(b.expires_at)-Date.parse(a.expires_at))[0]?.expires_at;
-  return heading+`<form class="panel settings-form" id="license-form"><h2>Tài khoản của bạn</h2><p class="muted">Đã đăng nhập: ${escape(account.email)}<br>${active?'Bản quyền đang hoạt động':'Chưa có bản quyền còn hiệu lực'}${expiry?` · Hạn sử dụng: ${escape(new Date(expiry).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok'}))} (UTC+7)`:''}</p><button type="button" class="button secondary" id="logout">Đăng xuất</button> <button type="button" class="button secondary" data-auth-mode="password">Đặt / đổi mật khẩu</button><label class="field">Key kích hoạt<input name="key" placeholder="Nhập key được cấp" autocomplete="off" minlength="16" maxlength="256"></label><button class="button primary">${icon('key-round')}Kích hoạt bản quyền</button></form>`;
+  const linked = account.identities?.some(identity => identity.provider === FILEZUNO_PROVIDER);
+  const linking = filezuno ? `<section class="panel settings-form filezuno-auth"><span class="eyebrow">KẾT NỐI FILEZUNO</span><h2>${linked?'Đã liên kết Filezuno':'Liên kết tài khoản hiện tại'}</h2><p>${linked?'Lần sau bạn có thể chọn Đăng nhập bằng Filezuno để vào đúng quán này.':'Liên kết khi đang đăng nhập để giữ nguyên quán, thực đơn và bản quyền, kể cả khi email Filezuno khác email QR Menu.'}</p>${linked?'':`<button type="button" class="button primary" id="filezuno-link">${icon('user-round')}Liên kết Filezuno</button>`}<p id="filezuno-status" role="status" aria-live="polite">${escape(filezunoMessage)}</p></section>` : '';
+  return heading+linking+`<form class="panel settings-form" id="license-form"><h2>Tài khoản của bạn</h2><p class="muted">Đã đăng nhập: ${escape(account.email)}<br>${active?'Bản quyền đang hoạt động':'Chưa có bản quyền còn hiệu lực'}${expiry?` · Hạn sử dụng: ${escape(new Date(expiry).toLocaleString('vi-VN',{timeZone:'Asia/Bangkok'}))} (UTC+7)`:''}</p><button type="button" class="button secondary" id="logout">Đăng xuất</button> <button type="button" class="button secondary" data-auth-mode="password">Đặt / đổi mật khẩu</button><label class="field">Key kích hoạt<input name="key" placeholder="Nhập key được cấp" autocomplete="off" minlength="16" maxlength="256"></label><button class="button primary">${icon('key-round')}Kích hoạt bản quyền</button></form>`;
 }
 function bindAuth() {
+ for (const [id, link] of [['filezuno-signin', false], ['filezuno-link', true]]) {
+   const button = document.getElementById(id);
+   if (button) button.onclick = async () => {
+     button.disabled = true;
+     const status = document.getElementById('filezuno-status');
+     status.textContent = 'Đang chuyển đến Filezuno…';
+     try { await filezuno.start(link); }
+     catch (error) { filezunoMessage = error.message; status.textContent = filezunoMessage; button.disabled = false; }
+   };
+ }
  document.querySelectorAll('[data-auth-mode]').forEach(button=>button.onclick=()=>{
    const next=button.dataset.authMode;
    passwordMode=next==='password';authMode=['password','cancel'].includes(next)?'signin':next;
@@ -260,7 +281,7 @@ function statusScreen(title, message, retry = false) {
  $('#app').innerHTML = `<main class="status-screen panel"><div class="eyebrow">QRMenu</div><h1>${escape(title)}</h1><p>${escape(message)}</p>${retry?'<button id="retry" class="button primary">Thử lại</button>':''}<a class="button secondary" href="/">Về trang quản lý</a></main>`;
  if($('#retry'))$('#retry').onclick=()=>boot();
 }
-async function boot() {
+async function boot(keepAccount = false) {
  const id=++bootId;
  if(configurationError){statusScreen('Chưa kết nối được',configurationError);return}
  if(!backend){
@@ -285,15 +306,42 @@ async function boot() {
    account=state.user;cloudRestaurant=state.restaurant;licenses=state.licenses;
    restaurant=cloudRestaurant?{name:cloudRestaurant.name,tagline:cloudRestaurant.tagline,address:cloudRestaurant.address,categories:cloudRestaurant.categories||[]}:{name:'Quán của bạn',tagline:'Chào mừng bạn đến với quán.',address:''};
    dishes=cloudRestaurant?.dishes??[];
-   if(!account||passwordMode)view='license';else if(view==='license'&&hasActiveLicense(licenses)&&cloudRestaurant)view='overview';
+   if(!account||passwordMode)view='license';else if(view==='license'&&hasActiveLicense(licenses)&&cloudRestaurant&&!keepAccount)view='overview';
    render();
  } catch(error){if(id===bootId)statusScreen('Không tải được dữ liệu',error.message||'Kiểm tra kết nối rồi thử lại.',true)}
 }
+const observe=sessionObserver(()=>boot());
 if(supabase){
- const observe=sessionObserver(()=>boot());
  supabase.auth.onAuthStateChange((event,session)=>{
+   if(!authReady){
+     observe('INITIAL_SESSION',session);
+     if(event==='PASSWORD_RECOVERY'){passwordMode=true;view='license'}
+     return;
+   }
    if(event==='PASSWORD_RECOVERY')setTimeout(()=>{passwordMode=true;view='license';boot()},0);
    else observe(event,session);
  });
 }
-boot();
+async function initialize() {
+ let result;
+ if(filezuno && publicSlug===null) {
+   statusScreen('Đang kiểm tra tài khoản…','Đang kết nối Filezuno và QR Menu.');
+   try { result = await filezuno.complete(); }
+   catch { result = { error: true, message: 'Không đọc được phiên liên kết. Cho phép lưu trữ trên trình duyệt rồi thử lại.' }; }
+   if(result) { filezunoMessage = result.message; if(result.linked || result.error)view='license'; }
+ }
+ // Seed the observer before enabling reloads. Supabase can emit SIGNED_IN
+ // while recovering the existing session after a cancelled OAuth callback.
+ if(supabase && publicSlug===null){
+   try{const current=await withLoadTimeout(supabase.auth.getSession());observe('INITIAL_SESSION',current.data?.session)}catch{}
+ }
+ authReady=true;
+ await boot(Boolean(result));
+ if(result)toast(result.message);
+}
+// A cancelled OAuth redirect can return to this same document with an error hash.
+// Chrome may keep the page alive instead of loading the module a second time.
+if(filezuno)window.addEventListener('hashchange',()=>{
+ if(isFilezunoCallback(oauthStorage,location.href))initialize();
+});
+initialize();

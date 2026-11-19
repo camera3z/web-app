@@ -16,6 +16,8 @@ npm run dev
 
 Hướng dẫn kết nối, cấp key và đưa lên tên miền: **[docs/setup.vi.md](docs/setup.vi.md)**.
 
+Ứng dụng đã chạy tại `menu.filezuno.net`: tích hợp tài khoản Filezuno trên project hiện có theo **[docs/filezuno-sso.vi.md](docs/filezuno-sso.vi.md)**. Chủ quán cũ đăng nhập email rồi liên kết Filezuno để giữ đúng quán và bản quyền.
+
 ## Kiểm tra
 
 ```sh
@@ -45,7 +47,7 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser
 - Ảnh minh họa lưu cục bộ; hỗ trợ URL ảnh HTTPS. Đã có chọn ảnh JPG/PNG/WebP (tối đa 5 MB), thu nhỏ và tải lên Supabase Storage; cần chạy `supabase/storage.sql`. Chưa có thanh toán tự động, trang admin cấp key.
 - Dữ liệu demo không tự nhập sang tài khoản online, tránh đưa nhầm dữ liệu trình duyệt vào quán.
 
-**Trạng thái:** đã triển khai mã và kiểm tra SQL + giao diện giả lập. Chưa kết nối Supabase thật, kiểm tra gửi email thực tế hay triển khai tên miền. Cần hoàn thành các bước trong hướng dẫn và kiểm tra trên hai tài khoản/thiết bị trước khi vận hành thương mại.
+**Trạng thái:** người quản trị xác nhận ứng dụng đang vận hành trên VPS tại `menu.filezuno.net`. Thay đổi đăng nhập Filezuno được kiểm tra bằng SQL + giao diện/API giả lập; cần phát hành và kiểm thử liên kết trên project thật theo hướng dẫn SSO.
 
 ## Ảnh món ăn
 

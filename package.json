@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test --test-isolation=none tests/*.test.js",
     "license": "node --env-file-if-exists=.env.admin scripts/license.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:sso": "node tests/filezuno-browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",
