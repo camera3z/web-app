@@ -45,12 +45,16 @@ Dùng checkout mới đã ghim commit, không reset hoặc ghi đè source đang
 bash /DUONG-DAN-STAGING/qrmenu/deploy/connect-filezuno.sh
 
 ## Hoặc chỉ phát hành frontend sau khi provider đã cấu hình:
-python3 /DUONG-DAN-STAGING/qrmenu/deploy/deploy-sso.py --source /opt/qrmenu
+python3 /DUONG-DAN-STAGING/qrmenu/deploy/deploy-sso.py --source /opt/qrmenu --install-node-if-missing
 ```
 
 Lệnh tổng hợp tải bản helper Filezuno đã ghim commit bằng deploy key hiện có `/root/.ssh/filezuno_deploy`, hỏi khóa Supabase qua nhập ẩn, rồi phát hành frontend. Nếu bước trước lỗi thì dừng trước bước sau. Có thể truyền thêm `--app-id ID` hoặc `--owner-email EMAIL` khi công cụ yêu cầu xác định sản phẩm/chủ sở hữu. Nó không cập nhật source đang chạy của Filezuno; máy chủ Filezuno cần đã có hỗ trợ nhiều Web App. Helper sẽ kiểm tra client OAuth qua HTTPS và dừng nếu phiên bản Filezuno hiện tại chưa chấp nhận mã mới.
 
 Script xác minh Nginx đang phục vụ đúng `/var/www/qrmenu`, đọc **chỉ URL và public key** từ `.env.local` hiện có; build riêng với `VITE_FILEZUNO_SSO=1`. Nó sao lưu bản web, phát hành tài nguyên trước/index sau, giữ asset cũ cho tab đang mở và xác minh index/JS/CSS qua HTTPS Nginx. Nếu kiểm tra phát hành lỗi thì khôi phục tệp cũ. Source `/opt/qrmenu`, env, Nginx và dữ liệu Supabase giữ nguyên.
+
+Script tìm Node.js 22.9+ cùng npm trong PATH, `.nvm` của QR Menu, Rentbook, các app cùng thư mục `/opt`, root và `NVM_DIR`. Lệnh tổng hợp bật `--install-node-if-missing`: nếu không có runtime phù hợp, tải Node 24 chính thức, kiểm tra SHA-256 rồi đặt riêng trong `/root/.cache/filezuno-node`. Chỉ PATH của tiến trình build dùng runtime đó; không đổi Node mặc định hoặc các dịch vụ đang chạy.
+
+Nếu provider đã báo thành công nhưng phát hành dừng vì thiếu Node, chỉ chạy lại **deploy-sso.py** từ checkout mới với tùy chọn trên. Không cần cấu hình provider hoặc nhập lại khóa Supabase.
 
 Nếu tự build bằng cách khác, phải đặt `VITE_FILEZUNO_SSO=1` khi build, sau khi provider đã được cấu hình. Mặc định `.env.example` để tắt tính năng trước khi kết nối.
 

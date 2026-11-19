@@ -25,4 +25,4 @@ git -C "$filezuno_auth_stage/filezuno" checkout --quiet --detach 7f3f2bf69a9f439
 /opt/filezuno-web/.venv/bin/python "$filezuno_auth_stage/filezuno/deploy/connect-webapp-auth.py" \
   --app-code qrmenu --app-name QRMenu --app-url https://menu.filezuno.net \
   --app-source /opt/qrmenu "$@"
-python3 "$qrmenu_checkout/deploy/deploy-sso.py" --source /opt/qrmenu
+python3 "$qrmenu_checkout/deploy/deploy-sso.py" --source /opt/qrmenu --install-node-if-missing
